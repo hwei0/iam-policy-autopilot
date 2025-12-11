@@ -2,7 +2,7 @@
 name: "iam-policy-autopilot-power"
 displayName: "IAM Policy Autopilot"
 description: "AWS IAM Policy Autopilot analyzes your application code locally to generate identity-based policies for application roles, enabling faster IAM policy creation and reducing access troubleshooting time"
-keywords: ["IAM", "AWS", "policy", "policies", "identity", "identity-based", "resource-based", "KMS", "S3", "resource", "permission", "boundary", "bucket", "sts", "access", "denial", "deny", "denied", "lambda", "cloudformation", "cfn", "cdk", "cloud", "analyzer"]
+keywords: ["IAM", "AWS", "policy", "policies", "identity", "identity-based", "permission", "access", "denial", "deny", "denied", "lambda"]
 mcpServers: "iam-policy-autopilot-mcp"
 ---
 
