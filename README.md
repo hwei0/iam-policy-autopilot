@@ -204,6 +204,28 @@ Add to your Claude Desktop configuration file:
 }
 ```
 
+### Kiro Power Configuration
+
+IAM Policy Autopilot has an associated [Kiro power](https://kiro.dev/blog/introducing-powers/) configuration inside the `power-iam-policy-autopilot` directory. This can be used to install a corresponding Kiro power in your Kiro editor.
+
+#### Enabling the IAM Policy Autopilot Kiro Power
+
+To enable the IAM Policy Autopilot Kiro Power, first **complete the installation steps** specified in this README file. Also, clone this repository, and remember the directory to where you cloned the repo. Then, within Kiro:
+1. Go to the "Powers" menu in the menubar on the left-hand-side.
+2. Click `Add Custom Power` -> `Import power from a folder`
+3. In the text prompt that then appears, select the `power-iam-policy-autopilot` folder in your cloned repository. For instance, if the repository is cloned to `~/workplace/iam-policy-autopilot`, you should select or enter `~/workplace/iam-policy-autopilot/power-iam-policy-autopilot`.
+4. Kiro should automatically install a new Kiro power called `IAM Policy Autopilot` within your Kiro code editor. This power should be visible in the `Powers` menu.
+
+
+#### Why use IAM Policy Autopilot's Kiro Power?
+
+Kiro powers generally offer [a more refined experience than traditional MCP servers](https://kiro.dev/blog/introducing-powers/) because they enable MCP tools to be loaded more selectively & deliberately, reducing LLM token usage and avoiding LLM context overcrowding. 
+
+IAM Policy Autopilot's Kiro power specifically enhances the traditional MCP experience, for multiple reasons:
+1. This Kiro Power provides your LLM agent with **more steering guidance**, offering it more information on the specific use cases and best practices of our MCP tooling. 
+2. This Kiro power prompts your LLM agent to give a **tutorial of the MCP tools** offered by IAM Policy Autopilot, allowing you to better understand how our MCP tooling assists your use case.
+3. This Kiro Power provides your LLM agent with **step-by-step onboarding validation**, allowing it to detect any problems with installations and provide remediation steps for those problems.
+
 ## CLI Usage
 
 The `iam-policy-autopilot` CLI tool provides three main commands:
