@@ -2,7 +2,7 @@
   "mcpServers": {
     "iam-policy-autopilot-mcp": {
       "command": "uvx",
-      "args": ["iam-policy-autopilot", "mcp-server"],
+      "args": ["iam-policy-autopilot@latest", "mcp-server"],
       "env": {},
       "disabled": false,
       "autoApprove": []
