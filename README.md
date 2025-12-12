@@ -210,7 +210,7 @@ IAM Policy Autopilot has an associated [Kiro power](https://kiro.dev/blog/introd
 
 #### Enabling the IAM Policy Autopilot Kiro Power
 
-To enable the IAM Policy Autopilot Kiro Power, first **complete the installation steps** specified in this README file. Also, clone this repository, and remember the directory to where you cloned the repo. Then, within Kiro:
+To enable the IAM Policy Autopilot Kiro Power, do the following steps within Kiro:
 1. Go to the "Powers" menu in the menubar on the left-hand-side.
 2. Click `Add Custom Power` -> `Import power from Github`
 3. In the text prompt that then appears, enter `https://github.com/awslabs/iam-policy-autopilot/tree/main/power-iam-policy-autopilot`.
