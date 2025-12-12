@@ -210,7 +210,7 @@ IAM Policy Autopilot has an associated [Kiro power](https://kiro.dev/blog/introd
 
 #### Enabling the IAM Policy Autopilot Kiro Power
 
-To enable the IAM Policy Autopilot Kiro Power, do the following steps within Kiro:
+To enable the IAM Policy Autopilot Kiro Power, first install the `uv` package manager by [following these instructions](https://docs.astral.sh/uv/getting-started/installation/). Then, do the following steps within Kiro:
 1. Go to the "Powers" menu in the menubar on the left-hand-side.
 2. Click `Add Custom Power` -> `Import power from Github`
 3. In the text prompt that then appears, enter `https://github.com/awslabs/iam-policy-autopilot/tree/main/power-iam-policy-autopilot`.
