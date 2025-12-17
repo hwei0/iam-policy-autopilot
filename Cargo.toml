@@ -46,7 +46,7 @@ criterion = "0.5"
 proptest = "1.0"
 
 # CLI-specific dependencies
-clap = { version = "4.5", features = ["derive", "env"] }
+clap = { version = "4.5", features = ["derive", "env", "cargo"] }
 env_logger = "0.11"
 log = "0.4"
 walkdir = "2.0"
@@ -64,7 +64,9 @@ serial_test = "3.0"
 atty = "0.2"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.8", features = ["v4"] }
-sha2 = "0.10"
+sha2 = "0.10.9"
+git2 = "0.20.3"
+relative-path = "2.0.1"
 url = "2.5"
 percent-encoding = "2.3"
 aws-sdk-iam = "1.89.0"

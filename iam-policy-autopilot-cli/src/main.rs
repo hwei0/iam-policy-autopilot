@@ -20,7 +20,7 @@ use std::path::PathBuf;
 use std::process;
 
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{crate_version, Parser, Subcommand};
 use iam_policy_autopilot_policy_generation::api::model::{
     AwsContext, ExtractSdkCallsConfig, GeneratePolicyConfig,
 };
@@ -35,6 +35,8 @@ mod types;
 
 use iam_policy_autopilot_mcp_server::{start_mcp_server, McpTransport};
 use types::ExitCode;
+
+use crate::commands::print_version_info;
 
 /// Default port for mcp server for Http Transport
 static MCP_HTTP_DEFAULT_PORT: u16 = 8001;
@@ -110,6 +112,7 @@ be required for the SDK call.";
     name = "iam-policy-autopilot",
     author,
     version,
+    disable_version_flag = true,
     about = "Generate IAM policies from source code and fix AccessDenied errors",
     long_about = "Unified tool that combines IAM policy generation from source code analysis \
 with automatic AccessDenied error fixing. Supports three main operations:\n\n\
@@ -346,6 +349,13 @@ for direct integration with IDEs and tools. 'http' starts an HTTP server for net
 Only used when --transport=http. The server will bind to 127.0.0.1 (localhost) on the specified port.")]
         port: u16,
     },
+
+    #[command(
+        about = "Print version information.",
+        short_flag = 'V',
+        long_flag = "version"
+    )]
+    Version {},
 }
 
 /// Initialize logging based on configuration
@@ -608,6 +618,14 @@ async fn main() {
                 }
             }
         }
+
+        Commands::Version {} => match print_version_info() {
+            Ok(()) => ExitCode::Success,
+            Err(e) => {
+                print_cli_command_error(e);
+                ExitCode::Error
+            }
+        },
     };
 
     process::exit(code.into());
