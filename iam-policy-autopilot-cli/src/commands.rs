@@ -147,7 +147,7 @@ pub fn print_version_info() -> anyhow::Result<()> {
     let boto3_version_metadata =
         iam_policy_autopilot_policy_generation::api::get_boto3_version_info()?;
     let botocore_version_metadata =
-        iam_policy_autopilot_policy_generation::api::get_boto3_version_info()?;
+        iam_policy_autopilot_policy_generation::api::get_botocore_version_info()?;
     println!("{}", crate_version!());
     println!(
         "boto3 version: commit_id={}, commit_tag={}, data_hash={}",
