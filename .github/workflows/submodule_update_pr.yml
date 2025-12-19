@@ -355,7 +355,7 @@ jobs:
           commit-message: |
             chore: update botocore version from ${{ steps.trim-commit-hashes.outputs.loki_head_botocore_commit_display }} (tag: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.botocore_loki_head_git_tag }} ) to ${{ steps.trim-commit-hashes.outputs.latest_release_botocore_commit_display }} (tag: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.botocore_latest_release_git_tag }})
           branch: dependencies/botocore
-          sign_commits: true
+          sign-commits: true
           title: | 
             chore: update botocore version from ${{ steps.trim-commit-hashes.outputs.loki_head_botocore_commit_display }} (tag: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.botocore_loki_head_git_tag }} ) to ${{ steps.trim-commit-hashes.outputs.latest_release_botocore_commit_display }} (tag: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.botocore_latest_release_git_tag }})
           body: |
