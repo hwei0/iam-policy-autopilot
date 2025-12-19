@@ -97,7 +97,7 @@ jobs:
     - name: checkout submodules to latest release version
       id: checkout-submodules-to-latest-release
       run: |
-        cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && git checkout master && git pull origin master && git fetch --tags && tag_version=$(git tag -l --sort=-version:refname | head -n 1) && git checkout "tags/$tag_version" -b master && echo "latest_release_boto3_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && cd ../botocore-data && git checkout master && git pull origin master && tag_version=$(git tag -l --sort=-version:refname | head -n 1) && git checkout "tags/$tag_version" -b master && echo "latest_release_botocore_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && cd ../../../../..
+        cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && git checkout master && git pull origin master && git fetch --tags && tag_version=$(git tag -l --sort=-version:refname | head -n 1) && git checkout "tags/$tag_version" && echo "latest_release_boto3_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && cd ../botocore-data && git checkout master && git pull origin master && tag_version=$(git tag -l --sort=-version:refname | head -n 1) && git checkout "tags/$tag_version" && echo "latest_release_botocore_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && cd ../../../../..
 
     - name: Build with updated submodules
       run: |
