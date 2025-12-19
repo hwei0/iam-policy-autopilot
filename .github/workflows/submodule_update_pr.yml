@@ -257,16 +257,17 @@ jobs:
 
       - name: Create pull request to commit, push, and create PR for update boto3 dependency version
         uses: peter-evans/create-pull-request@v8
-        path: 'iam-policy-autopilot-boto3'
-        commit-message: |
-          chore: update boto3 version from ${{ needs.checkout_loki_main_head.outputs.boto3_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
-        branch: dependencies/boto3
-        sign_commits: true
-        title: | 
-          chore: update boto3 version from ${{ needs.checkout_loki_main_head.outputs.boto3_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
-        body: |
-          boto3 version info at current head: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.boto3_loki_head_version_info }} 
-          boto3 version info to be updated to: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.boto3_latest_release_version_info }}
+        with:
+          path: 'iam-policy-autopilot-boto3'
+          commit-message: |
+            chore: update boto3 version from ${{ needs.checkout_loki_main_head.outputs.boto3_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
+          branch: dependencies/boto3
+          sign_commits: true
+          title: | 
+            chore: update boto3 version from ${{ needs.checkout_loki_main_head.outputs.boto3_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
+          body: |
+            boto3 version info at current head: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.boto3_loki_head_version_info }} 
+            boto3 version info to be updated to: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.boto3_latest_release_version_info }}
 
   sync_and_pr_botocore_submodule:
     runs-on: ubuntu-latest
@@ -301,16 +302,17 @@ jobs:
 
       - name: Create pull request to commit, push, and create PR for update botocore dependency version
         uses: peter-evans/create-pull-request@v8
-        path: 'iam-policy-autopilot-botocore'
-        commit-message: |
-          chore: update botocore version from ${{ needs.checkout_loki_main_head.outputs.botocore_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
-        branch: dependencies/botocore
-        sign_commits: true
-        title: | 
-          chore: update botocore version from ${{ needs.checkout_loki_main_head.outputs.botocore_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
-        body: |
-          botocore version info at current head: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.botocore_loki_head_version_info }} 
-          botocore version info to be updated to: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.botocore_latest_release_version_info }}
+        with:
+          path: 'iam-policy-autopilot-botocore'
+          commit-message: |
+            chore: update botocore version from ${{ needs.checkout_loki_main_head.outputs.botocore_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
+          branch: dependencies/botocore
+          sign_commits: true
+          title: | 
+            chore: update botocore version from ${{ needs.checkout_loki_main_head.outputs.botocore_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
+          body: |
+            botocore version info at current head: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.botocore_loki_head_version_info }} 
+            botocore version info to be updated to: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.botocore_latest_release_version_info }}
 
 
 
