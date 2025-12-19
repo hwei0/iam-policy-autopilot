@@ -160,8 +160,8 @@ jobs:
 
     - name: update submodules
       env: 
-        LOKI_HEAD_BOTO3_COMMIT: ${{ needs.checkout_loki_main_head.outputs.boto3_version }}
-        LOKI_HEAD_BOTOCORE_COMMIT: ${{ needs.checkout_loki_main_head.outputs.botocore_version }}
+        LOKI_HEAD_BOTO3_COMMIT: ${{ needs.checkout_loki_main_head.outputs.loki_head_boto3_commit }}
+        LOKI_HEAD_BOTOCORE_COMMIT: ${{ needs.checkout_loki_main_head.outputs.loki_head_botocore_commit }}
       run: |
         cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && git checkout master && git pull origin master && git checkout $LOKI_HEAD_BOTO3_COMMIT && cd ../botocore-data && git checkout master && git pull origin master && git checkout $LOKI_HEAD_BOTOCORE_COMMIT && cd ../../../../..
 
@@ -205,8 +205,8 @@ jobs:
           BOTOCORE_LOKI_HEAD_VERSION_STR: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.botocore_loki_head_version_info }}
           LATEST_RELEASE_BOTO3_COMMIT: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
           LATEST_RELEASE_BOTOCORE_COMMIT: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
-          LOKI_HEAD_BOTO3_COMMIT: ${{ needs.checkout_loki_main_head.outputs.boto3_version }}
-          LOKI_HEAD_BOTOCORE_COMMIT: ${{ needs.checkout_loki_main_head.outputs.botocore_version }}
+          LOKI_HEAD_BOTO3_COMMIT: ${{ needs.checkout_loki_main_head.outputs.loki_head_boto3_commit }}
+          LOKI_HEAD_BOTOCORE_COMMIT: ${{ needs.checkout_loki_main_head.outputs.loki_head_botocore_commit }}
           LOKI_RELEASE_COMMIT: ${{needs.checkout_release_repos_with_latest_submodule.outputs.loki_release_commit}}
           LOKI_HEAD_COMMIT: ${{needs.checkout_loki_main_head.outputs.loki_head_commit}}
           
@@ -270,7 +270,7 @@ jobs:
       - name: Update submodule in clone
         env: 
           LATEST_RELEASE_BOTO3_COMMIT: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
-          LOKI_HEAD_BOTO3_COMMIT: ${{ needs.checkout_loki_main_head.outputs.boto3_version }}
+          LOKI_HEAD_BOTO3_COMMIT: ${{ needs.checkout_loki_main_head.outputs.loki_head_boto3_commit }}
         run: |
           cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && git submodule update --init --recursive && git checkout $LATEST_RELEASE_BOTO3_COMMIT && cd ../../../../..
 
@@ -279,11 +279,11 @@ jobs:
         with:
           # path: 'iam-policy-autopilot-boto3'
           commit-message: |
-            chore: update boto3 version from ${{ needs.checkout_loki_main_head.outputs.boto3_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
+            chore: update boto3 version from ${{ needs.checkout_loki_main_head.outputs.loki_head_boto3_commit }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
           branch: dependencies/boto3
           sign_commits: true
           title: | 
-            chore: update boto3 version from ${{ needs.checkout_loki_main_head.outputs.boto3_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
+            chore: update boto3 version from ${{ needs.checkout_loki_main_head.outputs.loki_head_boto3_commit }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
           body: |
             boto3 version info at current head: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.boto3_loki_head_version_info }} 
             boto3 version info to be updated to: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.boto3_latest_release_version_info }}
@@ -315,7 +315,7 @@ jobs:
       - name: Update submodule in clone
         env: 
           LATEST_RELEASE_BOTOCORE_COMMIT: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
-          LOKI_HEAD_BOTOCORE_COMMIT: ${{ needs.checkout_loki_main_head.outputs.botocore_version }}
+          LOKI_HEAD_BOTOCORE_COMMIT: ${{ needs.checkout_loki_main_head.outputs.loki_head_botocore_commit }}
         run: |
           cd iam-policy-autopilot-policy-generation/resources/config/sdks/botocore-data && git submodule update --init --recursive && git checkout $LATEST_RELEASE_BOTOCORE_COMMIT && cd ../../../../..
 
@@ -324,11 +324,11 @@ jobs:
         with:
           # path: 'iam-policy-autopilot-botocore'
           commit-message: |
-            chore: update botocore version from ${{ needs.checkout_loki_main_head.outputs.botocore_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
+            chore: update botocore version from ${{ needs.checkout_loki_main_head.outputs.loki_head_botocore_commit }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
           branch: dependencies/botocore
           sign_commits: true
           title: | 
-            chore: update botocore version from ${{ needs.checkout_loki_main_head.outputs.botocore_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
+            chore: update botocore version from ${{ needs.checkout_loki_main_head.outputs.loki_head_botocore_commit }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
           body: |
             botocore version info at current head: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.botocore_loki_head_version_info }} 
             botocore version info to be updated to: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.botocore_latest_release_version_info }}
