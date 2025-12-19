@@ -134,7 +134,7 @@ jobs:
         fetch-depth: 0
         fetch-tags: true
         ref: main-action-dev
-        path: 'iam-policy-autopilot-release-loki-head-submodule'
+        # path: 'iam-policy-autopilot-release-loki-head-submodule'
 
     - name: revert repo to latest release
       run: |
@@ -243,7 +243,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           ref: main-action-dev
-          path: 'iam-policy-autopilot-boto3'
+          # path: 'iam-policy-autopilot-boto3'
       - name: Force-merge from main-action-dev
         run: |
           git merge -X theirs main-action-dev
@@ -257,7 +257,7 @@ jobs:
       - name: Create pull request to commit, push, and create PR for update boto3 dependency version
         uses: peter-evans/create-pull-request@v8
         with:
-          path: 'iam-policy-autopilot-boto3'
+          # path: 'iam-policy-autopilot-boto3'
           commit-message: |
             chore: update boto3 version from ${{ needs.checkout_loki_main_head.outputs.boto3_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
           branch: dependencies/boto3
@@ -288,7 +288,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           ref: main-action-dev
-          path: 'iam-policy-autopilot-botocore'
+          # path: 'iam-policy-autopilot-botocore'
       - name: Force-merge from main-action-dev
         run: |
           git merge -X theirs main-action-dev
@@ -302,7 +302,7 @@ jobs:
       - name: Create pull request to commit, push, and create PR for update botocore dependency version
         uses: peter-evans/create-pull-request@v8
         with:
-          path: 'iam-policy-autopilot-botocore'
+          # path: 'iam-policy-autopilot-botocore'
           commit-message: |
             chore: update botocore version from ${{ needs.checkout_loki_main_head.outputs.botocore_version }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
           branch: dependencies/botocore
