@@ -34,7 +34,7 @@ jobs:
         fetch-depth: 0
         fetch-tags: true
         ref: main-action-dev
-        path: 'iam-policy-autopilot-head-curr-submodule'
+        # path: 'iam-policy-autopilot-head-curr-submodule'
     - name: Get loki head commit
       id: get-loki-head-commit
       run: |
@@ -80,7 +80,7 @@ jobs:
         fetch-depth: 0
         fetch-tags: true
         ref: main-action-dev
-        path: 'iam-policy-autopilot-release-latest-submodule'
+        # path: 'iam-policy-autopilot-release-latest-submodule'
 
     - name: checkout repo to latest release version
       run: |
