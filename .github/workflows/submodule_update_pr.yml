@@ -40,6 +40,8 @@ jobs:
       run: |
         pwd && echo "loki_head_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+        cat $GITHUB_OUTPUT
+
     - uses: dtolnay/rust-toolchain@stable
 
     - uses: Swatinem/rust-cache@v2
@@ -54,10 +56,15 @@ jobs:
       run: |
         cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && echo "boto3_version=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && cd ../../../../..
 
+        cat $GITHUB_OUTPUT
+
     - name: Get botocore version used by main-action-dev HEAD
       id: get-head-botocore-version-info
       run: |
         cd iam-policy-autopilot-policy-generation/resources/config/sdks/botocore-data && echo "botocore_version=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && cd ../../../../..
+
+        cat $GITHUB_OUTPUT
+
   
   checkout_release_repos_with_latest_submodule:
     runs-on: ubuntu-latest
@@ -89,6 +96,7 @@ jobs:
       id: get-loki-release-commit
       run: |
         echo "loki_release_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        cat $GITHUB_OUTPUT
 
     - uses: dtolnay/rust-toolchain@stable
 
@@ -98,6 +106,8 @@ jobs:
       id: checkout-submodules-to-latest-release
       run: |
         cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && git checkout master && git pull origin master && git fetch --tags && tag_version=$(git tag -l --sort=-version:refname | head -n 1) && git checkout "tags/$tag_version" && echo "latest_release_boto3_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && cd ../botocore-data && git checkout master && git pull origin master && tag_version=$(git tag -l --sort=-version:refname | head -n 1) && git checkout "tags/$tag_version" && echo "latest_release_botocore_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && cd ../../../../..
+
+        cat $GITHUB_OUTPUT
 
     - name: Build with updated submodules
       run: |
@@ -109,10 +119,14 @@ jobs:
       run: |
         echo "boto3_version_info=$(target/debug/iam-policy-autopilot --version | head -n 2)" >> "$GITHUB_OUTPUT"
 
+        cat $GITHUB_OUTPUT
+
     - name: Run version info with updated submodules
       id: version-info-botocore-latest-release
       run: |
         echo "botocore_version_info=$(target/debug/iam-policy-autopilot --version | head -n 3)" >> "$GITHUB_OUTPUT"
+
+        cat $GITHUB_OUTPUT
 
   checkout_release_repos_with_loki_head_submodule:
     runs-on: ubuntu-latest
@@ -161,10 +175,14 @@ jobs:
       run: |
         echo "boto3_version_info=$(target/debug/iam-policy-autopilot --version | head -n 2)" >> "$GITHUB_OUTPUT"
 
+        cat $GITHUB_OUTPUT
+
     - name: Run version info with updated submodules
       id: version-info-botocore-loki-head
       run: |
         echo "botocore_version_info=$(target/debug/iam-policy-autopilot --version | head -n 3)" >> "$GITHUB_OUTPUT"
+
+        cat $GITHUB_OUTPUT
 
   compare_submodule_version:
     runs-on: ubuntu-latest
@@ -222,6 +240,8 @@ jobs:
 
           echo "boto3_data_hash_changed=$BOTO3_HASH_CHANGED" >> "$GITHUB_OUTPUT"
           echo "botocore_data_hash_changed=$BOTOCORE_HASH_CHANGED" >> "$GITHUB_OUTPUT"
+
+        cat $GITHUB_OUTPUT
 
   sync_and_pr_boto3_submodule:
     runs-on: ubuntu-latest
