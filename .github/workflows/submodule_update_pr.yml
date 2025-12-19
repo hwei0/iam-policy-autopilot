@@ -214,10 +214,10 @@ jobs:
         run: |
           echo "::notice loki head commit: $LOKI_HEAD_COMMIT" && echo "::notice loki release commit: $LOKI_RELEASE_COMMIT" && echo "::notice loki head, $BOTO3_LOKI_HEAD_VERSION_STR" && echo "::notice loki head, $BOTOCORE_LOKI_HEAD_VERSION_STR (commit_id=$)" && echo "::notice latest release, $BOTO3_LATEST_RELEASE_VERSION_STR" && echo "::notice latest release, $BOTOCORE_LATEST_RELEASE_VERSION_STR"
 
-          export BOTO3_LATEST_RELEASE_DATA_HASH="$( echo $BOTO3_LATEST_RELEASE_VERSION_STR | sed -n 's/.*, data_hash=\([a-zA-Z0-9]*\).*/\1/p'
-          export BOTO3_LOKI_HEAD_DATA_HASH="$( echo $BOTO3_LOKI_HEAD_VERSION_STR | sed -n 's/.*, data_hash=\([a-zA-Z0-9]*\).*/\1/p'
+          export BOTO3_LATEST_RELEASE_DATA_HASH="$( echo $BOTO3_LATEST_RELEASE_VERSION_STR | sed -n 's/.*, data_hash=\([a-zA-Z0-9]*\).*/\1/p' )"
+          export BOTO3_LOKI_HEAD_DATA_HASH="$( echo $BOTO3_LOKI_HEAD_VERSION_STR | sed -n 's/.*, data_hash=\([a-zA-Z0-9]*\).*/\1/p' )"
 
-          export BOTOCORE_LATEST_RELEASE_DATA_HASH="$( echo $BOTOCORE_LATEST_RELEASE_VERSION_STR | sed -n 's/.*, data_hash=\([a-zA-Z0-9]*\).*/\1/p'
+          export BOTOCORE_LATEST_RELEASE_DATA_HASH="$( echo $BOTOCORE_LATEST_RELEASE_VERSION_STR | sed -n 's/.*, data_hash=\([a-zA-Z0-9]*\).*/\1/p' )"
           export BOTOCORE_LOKI_HEAD_DATA_HASH="$( echo $BOTOCORE_LOKI_HEAD_VERSION_STR | sed -n 's/.*, data_hash=\([a-zA-Z0-9]*\).*/\1/p' )"
 
           echo "::notice extracted latest release boto3 data hash: $BOTO3_LATEST_RELEASE_DATA_HASH"
