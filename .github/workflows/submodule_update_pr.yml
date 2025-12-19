@@ -3,6 +3,9 @@ name: Submodule updater
 on:
   schedule:
     - cron: "0 0 * * *"
+  push: 
+    branches:
+      - "**"
   workflow_dispatch:
 permissions:
   contents: write
