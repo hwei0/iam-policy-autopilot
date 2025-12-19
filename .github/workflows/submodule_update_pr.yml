@@ -1,4 +1,4 @@
-name: Submit PRs to update submodules to latest tagged commits
+name: Submodule updater
 
 on:
   schedule:
