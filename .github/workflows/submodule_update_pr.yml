@@ -1,5 +1,7 @@
 name: Submodule updater
-
+# TODO: change branch back to main
+# TODO: change debug to release
+# TODO: change the on: contents
 on:
   schedule:
     - cron: "0 0 * * *"
@@ -36,7 +38,7 @@ jobs:
     - name: Get loki head commit
       id: get-loki-head-commit
       run: |
-        echo "loki_head_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        pwd && echo "loki_head_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
     - uses: dtolnay/rust-toolchain@stable
 
@@ -44,10 +46,8 @@ jobs:
 
     - name: Build with current submodules
       run: |
-        sudo apt-get update
-        sudo apt-get upgrade
         sudo apt-get install -y cmake pkg-config libssl-dev
-        cargo build --workspace --verbose --debug
+        cargo build --workspace --verbose 
 
     - name: Get boto3 version used by main-action-dev HEAD
       id: get-head-boto3-version-info
@@ -84,7 +84,7 @@ jobs:
 
     - name: checkout repo to latest release version
       run: |
-        git fetch --tags && tag_version=$(git tag -l --sort=-version:refname | head -n 1) git checkout "tags/$tag_version" && git submodule update --init --recursive
+        pwd && git fetch --tags && tag_version=$(git tag -l --sort=-version:refname | head -n 1) git checkout "tags/$tag_version" && git submodule update --init --recursive
     - name: get loki release commit
       id: get-loki-release-commit
       run: |
@@ -101,10 +101,8 @@ jobs:
 
     - name: Build with updated submodules
       run: |
-        sudo apt-get update
-        sudo apt-get upgrade
         sudo apt-get install -y cmake pkg-config libssl-dev
-        cargo build --workspace --verbose --debug
+        cargo build --workspace --verbose 
 
     - name: Run version info with updated submodules
       id: version-info-boto3-latest-release
@@ -155,10 +153,8 @@ jobs:
 
     - name: Build with updated submodules
       run: |
-        sudo apt-get update
-        sudo apt-get upgrade
         sudo apt-get install -y cmake pkg-config libssl-dev
-        cargo build --workspace --verbose --debug
+        cargo build --workspace --verbose 
 
     - name: Run version info with updated submodules
       id: version-info-boto3-loki-head
