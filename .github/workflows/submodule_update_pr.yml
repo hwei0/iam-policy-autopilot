@@ -79,6 +79,8 @@ jobs:
       latest_release_botocore_commit: ${{ steps.checkout-submodules-to-latest-release.outputs.latest_release_botocore_commit }}
       boto3_latest_release_version_info: ${{ steps.version-info-boto3-latest-release.outputs.boto3_version_info }}
       botocore_latest_release_version_info: ${{ steps.version-info-botocore-latest-release.outputs.botocore_version_info }}
+      boto3_latest_release_git_tag: ${{ steps.checkout-submodules-to-latest-release.outputs.latest_release_boto3_tag }}
+      botocore_latest_release_git_tag: ${{ steps.checkout-submodules-to-latest-release.outputs.latest_release_botocore_tag }}
       loki_release_commit: ${{steps.get-loki-release-commit.outputs.loki_release_commit}}
     steps:
     - uses: actions/checkout@v6
@@ -105,7 +107,7 @@ jobs:
     - name: checkout submodules to latest release version
       id: checkout-submodules-to-latest-release
       run: |
-        cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && git checkout master && git pull origin master && git fetch --tags && tag_version=$(git tag -l --sort=-version:refname | head -n 1) && git checkout "tags/$tag_version" && echo "latest_release_boto3_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && cd ../botocore-data && git checkout master && git pull origin master && tag_version=$(git tag -l --sort=-version:refname | head -n 1) && git checkout "tags/$tag_version" && echo "latest_release_botocore_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && cd ../../../../..
+        cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && git checkout master && git pull origin master && git fetch --tags && tag_version=$(git tag -l --sort=-version:refname | head -n 1) && git checkout "tags/$tag_version" && echo "latest_release_boto3_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && echo "latest_release_boto3_tag=$tag_version" >> "$GITHUB_OUTPUT" && cd ../botocore-data && git checkout master && git pull origin master && tag_version=$(git tag -l --sort=-version:refname | head -n 1) && git checkout "tags/$tag_version" && echo "latest_release_botocore_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && echo "latest_release_botocore_tag=$tag_version" >> "$GITHUB_OUTPUT" && cd ../../../../..
 
         cat $GITHUB_OUTPUT
 
@@ -140,6 +142,8 @@ jobs:
     outputs:
       boto3_loki_head_version_info: ${{ steps.version-info-boto3-loki-head.outputs.boto3_version_info }}
       botocore_loki_head_version_info: ${{ steps.version-info-botocore-loki-head.outputs.botocore_version_info }}
+      boto3_loki_head_git_tag: ${{ steps.checkout-submodules-to-loki-head-commit.outputs.loki_head_boto3_tag }}
+      botocore_loki_head_git_tag: ${{ steps.checkout-submodules-to-loki-head-commit.outputs.loki_head_botocore_tag }}
       
     steps:
     - uses: actions/checkout@v6
@@ -159,11 +163,12 @@ jobs:
     - uses: Swatinem/rust-cache@v2
 
     - name: update submodules
+      id: checkout-submodules-to-loki-head-commit
       env: 
         LOKI_HEAD_BOTO3_COMMIT: ${{ needs.checkout_loki_main_head.outputs.loki_head_boto3_commit }}
         LOKI_HEAD_BOTOCORE_COMMIT: ${{ needs.checkout_loki_main_head.outputs.loki_head_botocore_commit }}
       run: |
-        cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && git checkout master && git pull origin master && git checkout $LOKI_HEAD_BOTO3_COMMIT && cd ../botocore-data && git checkout master && git pull origin master && git checkout $LOKI_HEAD_BOTOCORE_COMMIT && cd ../../../../..
+        cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && git checkout master && git pull origin master && git checkout $LOKI_HEAD_BOTO3_COMMIT && git fetch --tags && echo "loki_head_boto3_tag=$(git tag --points-at HEAD || echo 'None')" >> "$GITHUB_OUTPUT" && cd ../botocore-data && git checkout master && git pull origin master && git checkout $LOKI_HEAD_BOTOCORE_COMMIT && git fetch --tags && echo "loki_head_botocore_tag=$(git tag --points-at HEAD || echo 'None')" >> "$GITHUB_OUTPUT" && cd ../../../../..
 
     - name: Build with updated submodules
       run: |
@@ -201,8 +206,12 @@ jobs:
       - env:
           BOTO3_LATEST_RELEASE_VERSION_STR: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.boto3_latest_release_version_info }}
           BOTOCORE_LATEST_RELEASE_VERSION_STR: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.botocore_latest_release_version_info }}
+          BOTO3_LATEST_RELEASE_GIT_TAG: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.boto3_latest_release_git_tag }}
+          BOTOCORE_LATEST_RELEASE_GIT_TAG: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.botocore_latest_release_git_tag }}
           BOTO3_LOKI_HEAD_VERSION_STR: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.boto3_loki_head_version_info }} 
           BOTOCORE_LOKI_HEAD_VERSION_STR: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.botocore_loki_head_version_info }}
+          BOTO3_LOKI_HEAD_GIT_TAG: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.boto3_loki_head_git_tag }} 
+          BOTOCORE_LOKI_HEAD_GIT_TAG: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.botocore_loki_head_git_tag }}
           LATEST_RELEASE_BOTO3_COMMIT: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
           LATEST_RELEASE_BOTOCORE_COMMIT: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
           LOKI_HEAD_BOTO3_COMMIT: ${{ needs.checkout_loki_main_head.outputs.loki_head_boto3_commit }}
@@ -212,7 +221,7 @@ jobs:
           
         id: compare-data-hash
         run: |
-          echo "::notice loki head commit: $LOKI_HEAD_COMMIT" && echo "::notice loki release commit: $LOKI_RELEASE_COMMIT" && echo "::notice loki head, $BOTO3_LOKI_HEAD_VERSION_STR" && echo "::notice loki head, $BOTOCORE_LOKI_HEAD_VERSION_STR (commit_id=$)" && echo "::notice latest release, $BOTO3_LATEST_RELEASE_VERSION_STR" && echo "::notice latest release, $BOTOCORE_LATEST_RELEASE_VERSION_STR"
+          echo "::notice loki head commit: $LOKI_HEAD_COMMIT" && echo "::notice loki release commit: $LOKI_RELEASE_COMMIT" && echo "::notice loki head, $BOTO3_LOKI_HEAD_VERSION_STR (commit_id=$LOKI_HEAD_BOTO3_COMMIT, tag=$BOTO3_LOKI_HEAD_GIT_TAG)" && echo "::notice loki head, $BOTOCORE_LOKI_HEAD_VERSION_STR (commit_id=$LOKI_HEAD_BOTOCORE_COMMIT, tag=$BOTOCORE_LOKI_HEAD_GIT_TAG)" && echo "::notice latest release, $BOTO3_LATEST_RELEASE_VERSION_STR (commit_id=$LATEST_RELEASE_BOTO3_COMMIT, tag=$BOTO3_LATEST_RELEASE_GIT_TAG)" && echo "::notice latest release, $BOTOCORE_LATEST_RELEASE_VERSION_STR (commit_id=$LATEST_RELEASE_BOTOCORE_COMMIT, tag=$BOTOCORE_LATEST_RELEASE_GIT_TAG)"
 
           export BOTO3_LATEST_RELEASE_DATA_HASH="$( echo $BOTO3_LATEST_RELEASE_VERSION_STR | sed -n 's/.*, data_hash=\([a-zA-Z0-9]*\).*/\1/p' )"
           export BOTO3_LOKI_HEAD_DATA_HASH="$( echo $BOTO3_LOKI_HEAD_VERSION_STR | sed -n 's/.*, data_hash=\([a-zA-Z0-9]*\).*/\1/p' )"
@@ -273,20 +282,31 @@ jobs:
           LOKI_HEAD_BOTO3_COMMIT: ${{ needs.checkout_loki_main_head.outputs.loki_head_boto3_commit }}
         run: |
           cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && git submodule update --init --recursive && git checkout $LATEST_RELEASE_BOTO3_COMMIT && cd ../../../../..
+      
+      - name: Trim commit hashes to 7 chars
+        id: trim-commit-hashes
+        env: 
+          LATEST_RELEASE_BOTO3_COMMIT: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
+          LOKI_HEAD_BOTO3_COMMIT: ${{ needs.checkout_loki_main_head.outputs.loki_head_boto3_commit }}
+        run: |
+          echo "latest_release_boto3_commit_display=${LATEST_RELEASE_BOTO3_COMMIT:0:7}" >> $GITHUB_OUTPUT
+          echo "loki_head_boto3_commit_display=${LOKI_HEAD_BOTO3_COMMIT:0:7}" >> $GITHUB_OUTPUT
+          
+
 
       - name: Create pull request to commit, push, and create PR for update boto3 dependency version
         uses: peter-evans/create-pull-request@v8
         with:
           # path: 'iam-policy-autopilot-boto3'
           commit-message: |
-            chore: update boto3 version from ${{ needs.checkout_loki_main_head.outputs.loki_head_boto3_commit }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
+            chore: update boto3 version from ${{ steps.trim-commit-hashes.outputs.loki_head_boto3_commit_display }} (tag: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.boto3_loki_head_git_tag }}) to ${{ steps.trim-commit-hashes.outputs.latest_release_boto3_commit_display }} (tag: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.boto3_latest_release_git_tag }})
           branch: dependencies/boto3
           sign_commits: true
           title: | 
-            chore: update boto3 version from ${{ needs.checkout_loki_main_head.outputs.loki_head_boto3_commit }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_boto3_commit }}
+            chore: update boto3 version from ${{ steps.trim-commit-hashes.outputs.loki_head_boto3_commit_display }} (tag: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.boto3_loki_head_git_tag }}) to ${{ steps.trim-commit-hashes.outputs.latest_release_boto3_commit_display }} (tag: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.boto3_latest_release_git_tag }})
           body: |
-            boto3 version info at current head: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.boto3_loki_head_version_info }} 
-            boto3 version info to be updated to: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.boto3_latest_release_version_info }}
+            boto3 version info at current head: ```${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.boto3_loki_head_version_info }}```
+            boto3 version info to be updated to: ```${{ needs.checkout_release_repos_with_latest_submodule.outputs.boto3_latest_release_version_info }}```
 
   sync_and_pr_botocore_submodule:
     runs-on: ubuntu-latest
@@ -319,19 +339,28 @@ jobs:
         run: |
           cd iam-policy-autopilot-policy-generation/resources/config/sdks/botocore-data && git submodule update --init --recursive && git checkout $LATEST_RELEASE_BOTOCORE_COMMIT && cd ../../../../..
 
+      - name: Trim commit hashes to 7 chars
+        id: trim-commit-hashes
+        env: 
+          LATEST_RELEASE_BOTOCORE_COMMIT: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
+          LOKI_HEAD_BOTOCORE_COMMIT: ${{ needs.checkout_loki_main_head.outputs.loki_head_botocore_commit }}
+        run: |
+          echo "latest_release_botocore_commit_display=${LATEST_RELEASE_BOTOCORE_COMMIT:0:7}" >> $GITHUB_OUTPUT
+          echo "loki_head_botocore_commit_display=${LOKI_HEAD_BOTOCORE_COMMIT:0:7}" >> $GITHUB_OUTPUT
+
       - name: Create pull request to commit, push, and create PR for update botocore dependency version
         uses: peter-evans/create-pull-request@v8
         with:
           # path: 'iam-policy-autopilot-botocore'
           commit-message: |
-            chore: update botocore version from ${{ needs.checkout_loki_main_head.outputs.loki_head_botocore_commit }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
+            chore: update botocore version from ${{ steps.trim-commit-hashes.outputs.loki_head_botocore_commit_display }} (tag: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.botocore_loki_head_git_tag }} ) to ${{ steps.trim-commit-hashes.outputs.latest_release_botocore_commit_display }} (tag: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.botocore_latest_release_git_tag }})
           branch: dependencies/botocore
           sign_commits: true
           title: | 
-            chore: update botocore version from ${{ needs.checkout_loki_main_head.outputs.loki_head_botocore_commit }} to ${{ needs.checkout_release_repos_with_latest_submodule.outputs.latest_release_botocore_commit }}
+            chore: update botocore version from ${{ steps.trim-commit-hashes.outputs.loki_head_botocore_commit_display }} (tag: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.botocore_loki_head_git_tag }} ) to ${{ steps.trim-commit-hashes.outputs.latest_release_botocore_commit_display }} (tag: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.botocore_latest_release_git_tag }})
           body: |
-            botocore version info at current head: ${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.botocore_loki_head_version_info }} 
-            botocore version info to be updated to: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.botocore_latest_release_version_info }}
+            botocore version info at current head: ```${{ needs.checkout_release_repos_with_loki_head_submodule.outputs.botocore_loki_head_version_info }}```
+            botocore version info to be updated to: ```${{ needs.checkout_release_repos_with_latest_submodule.outputs.botocore_latest_release_version_info }}```
 
 
 
