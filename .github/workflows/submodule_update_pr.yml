@@ -117,14 +117,14 @@ jobs:
     - name: Run version info with updated submodules
       id: version-info-boto3-latest-release
       run: |
-        echo "boto3_version_info=$(target/debug/iam-policy-autopilot --version | head -n 2)" >> "$GITHUB_OUTPUT"
+        echo "boto3_version_info=$(target/debug/iam-policy-autopilot --version | head -n 2 | tail -n 1)" >> "$GITHUB_OUTPUT"
 
         cat $GITHUB_OUTPUT
 
     - name: Run version info with updated submodules
       id: version-info-botocore-latest-release
       run: |
-        echo "botocore_version_info=$(target/debug/iam-policy-autopilot --version | head -n 3)" >> "$GITHUB_OUTPUT"
+        echo "botocore_version_info=$(target/debug/iam-policy-autopilot --version | head -n 3 | tail -n 1)" >> "$GITHUB_OUTPUT"
 
         cat $GITHUB_OUTPUT
 
@@ -173,14 +173,14 @@ jobs:
     - name: Run version info with updated submodules
       id: version-info-boto3-loki-head
       run: |
-        echo "boto3_version_info=$(target/debug/iam-policy-autopilot --version | head -n 2)" >> "$GITHUB_OUTPUT"
+        echo "boto3_version_info=$(target/debug/iam-policy-autopilot --version | head -n 2 | tail -n 1)" >> "$GITHUB_OUTPUT"
 
         cat $GITHUB_OUTPUT
 
     - name: Run version info with updated submodules
       id: version-info-botocore-loki-head
       run: |
-        echo "botocore_version_info=$(target/debug/iam-policy-autopilot --version | head -n 3)" >> "$GITHUB_OUTPUT"
+        echo "botocore_version_info=$(target/debug/iam-policy-autopilot --version | head -n 3 | tail -n 1)" >> "$GITHUB_OUTPUT"
 
         cat $GITHUB_OUTPUT
 
@@ -335,4 +335,4 @@ jobs:
 
 
 
-    #         target/debug/iam-policy-autopilot --version | head -n 2 | sed -n 's/.*, commit_tag=\([a-zA-Z0-9]*\),.*/\1/p'
+    #         target/debug/iam-policy-autopilot --version | head -n 2 | tail -n 1 | sed -n 's/.*, commit_tag=\([a-zA-Z0-9]*\),.*/\1/p'
