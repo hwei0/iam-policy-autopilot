@@ -226,7 +226,7 @@ jobs:
 
   sync_and_pr_boto3_submodule:
     runs-on: ubuntu-latest
-    needs: [compare_submodule_versionm, checkout_release_repos_with_latest_submodule, checkout_release_repos_with_loki_head_submodule]
+    needs: [compare_submodule_version, checkout_release_repos_with_latest_submodule, checkout_release_repos_with_loki_head_submodule]
     name: Sync and update boto3-dependency branch, and update PR 
     permissions:
       contents: write
@@ -271,7 +271,7 @@ jobs:
 
   sync_and_pr_botocore_submodule:
     runs-on: ubuntu-latest
-    needs: [compare_submodule_versionm, checkout_release_repos_with_latest_submodule, checkout_release_repos_with_loki_head_submodule]
+    needs: [compare_submodule_version, checkout_release_repos_with_latest_submodule, checkout_release_repos_with_loki_head_submodule]
     name: Sync and update botocore-dependency branch, and update PR 
     permissions:
       contents: write
