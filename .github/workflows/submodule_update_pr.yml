@@ -149,7 +149,7 @@ jobs:
         LOKI_HEAD_BOTO3_COMMIT: ${{ needs.checkout_loki_main_head.outputs.boto3_version }}
         LOKI_HEAD_BOTOCORE_COMMIT: ${{ needs.checkout_loki_main_head.outputs.botocore_version }}
       run: |
-        cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && git checkout master && git pull origin master && git checkout $LOKI_HEAD_BOTO3_COMMIT && cd ../botocore && git checkout master && git pull origin master && git checkout $LOKI_HEAD_BOTOCORE_COMMIT && cd ../../../../..
+        cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && git checkout master && git pull origin master && git checkout $LOKI_HEAD_BOTO3_COMMIT && cd ../botocore-data && git checkout master && git pull origin master && git checkout $LOKI_HEAD_BOTOCORE_COMMIT && cd ../../../../..
 
     - name: Build with updated submodules
       run: |
