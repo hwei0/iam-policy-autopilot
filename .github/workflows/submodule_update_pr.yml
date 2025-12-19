@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   checkout_loki_main_head:
-    runs_on: ubuntu-latest
+    runs-on: ubuntu-latest
     name: Checkout main-action-dev head and get the current submodule version info
     permissions:
       contents: read
@@ -47,17 +47,17 @@ jobs:
         cargo build --workspace --verbose --debug
 
     - name: Get boto3 version used by main-action-dev HEAD
-    - id: get-head-boto3-version-info
+      id: get-head-boto3-version-info
       run: |
         cd iam-policy-autopilot-policy-generation/resources/config/sdks/boto3 && echo "boto3_version=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && cd ../../../../..
 
     - name: Get botocore version used by main-action-dev HEAD
-    - id: get-head-botocore-version-info
+      id: get-head-botocore-version-info
       run: |
         cd iam-policy-autopilot-policy-generation/resources/config/sdks/botocore-data && echo "botocore_version=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" && cd ../../../../..
   
   checkout_release_repos_with_latest_submodule:
-    runs_on: ubuntu-latest
+    runs-on: ubuntu-latest
     name: Checkout the latest release of this repo; and, the latest release of submodules
     permissions:
       contents: read
@@ -114,7 +114,7 @@ jobs:
         echo "botocore_version_info=$(target/debug/iam-policy-autopilot --version | head -n 3)" >> "$GITHUB_OUTPUT"
 
   checkout_release_repos_with_loki_head_submodule:
-    runs_on: ubuntu-latest
+    runs-on: ubuntu-latest
     needs: checkout_loki_main_head
     name: Checkout the latest release of this repo; and, the version of submodules at the loki head commit
     permissions:
@@ -168,7 +168,7 @@ jobs:
         echo "botocore_version_info=$(target/debug/iam-policy-autopilot --version | head -n 3)" >> "$GITHUB_OUTPUT"
 
   compare_submodule_version:
-    runs_on: ubuntu-latest
+    runs-on: ubuntu-latest
     needs: [checkout_loki_main_head, checkout_release_repos_with_latest_submodule, checkout_release_repos_with_loki_head_submodule]
     name: Grep & compare the submodule versions from loki head, and the latest release; submit PR if different
     permissions:
@@ -223,11 +223,9 @@ jobs:
 
           echo "boto3_data_hash_changed=$BOTO3_HASH_CHANGED" >> "$GITHUB_OUTPUT"
           echo "botocore_data_hash_changed=$BOTOCORE_HASH_CHANGED" >> "$GITHUB_OUTPUT"
-      - name: Clone loki head and submit PR to update submodules
-        if: ${{ steps.compare-data-hash.outputs.data_hash_changed }}
 
   sync_and_pr_boto3_submodule:
-    runs_on: ubuntu-latest
+    runs-on: ubuntu-latest
     needs: [compare_submodule_versionm, checkout_release_repos_with_latest_submodule, checkout_release_repos_with_loki_head_submodule]
     name: Sync and update boto3-dependency branch, and update PR 
     permissions:
@@ -271,7 +269,7 @@ jobs:
           boto3 version info to be updated to: ${{ needs.checkout_release_repos_with_latest_submodule.outputs.boto3_latest_release_version_info }}
 
   sync_and_pr_botocore_submodule:
-    runs_on: ubuntu-latest
+    runs-on: ubuntu-latest
     needs: [compare_submodule_versionm, checkout_release_repos_with_latest_submodule, checkout_release_repos_with_loki_head_submodule]
     name: Sync and update botocore-dependency branch, and update PR 
     permissions:
