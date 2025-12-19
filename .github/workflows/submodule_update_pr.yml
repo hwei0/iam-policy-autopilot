@@ -241,7 +241,7 @@ jobs:
           echo "boto3_data_hash_changed=$BOTO3_HASH_CHANGED" >> "$GITHUB_OUTPUT"
           echo "botocore_data_hash_changed=$BOTOCORE_HASH_CHANGED" >> "$GITHUB_OUTPUT"
 
-        cat $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
 
   sync_and_pr_boto3_submodule:
     runs-on: ubuntu-latest
