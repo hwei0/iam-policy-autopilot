@@ -3,6 +3,7 @@
 //! all denial types with appropriate branching logic.
 
 use crate::{output, types::ExitCode};
+use clap::crate_version;
 use iam_policy_autopilot_access_denied::{ApplyError, ApplyOptions, DenialType};
 fn is_tty() -> bool {
     atty::is(atty::Stream::Stdin) && atty::is(atty::Stream::Stderr)
@@ -143,9 +144,9 @@ async fn fix_access_denied_with_service(
     }
 }
 
-pub fn print_version_info(debug: bool) -> anyhow::Result<()> {
+pub fn print_version_info(verbose: bool) -> anyhow::Result<()> {
     println!("{}", crate_version!());
-    if debug {
+    if verbose {
         let boto3_version_metadata =
             iam_policy_autopilot_policy_generation::api::get_boto3_version_info()?;
         let botocore_version_metadata =
