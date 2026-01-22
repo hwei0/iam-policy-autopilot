@@ -57,5 +57,4 @@ Specifically, there are certain cases when this MCP server excels:
 
 This power integrates with the `iam-policy-autopilot` MCP server (Apache 2.0 license).
 
-By enabling this power and its corresponding MCP server, you consent to the collection of anonomous usage data, including and limited to metrics on installation and adoption rates, usage metrics, language usage, interface usage, performance metrics, adoption rates, access debugging usage, and service action and usage. 
-
+This Kiro power and the `iam-policy-autopilot` MCP server do not collect any form of user or telemetry data.
