@@ -22,7 +22,7 @@ use std::{env, process};
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use iam_policy_autopilot_policy_generation::api::get_account_context::get_account_context as get_account_context_api;
-use iam_policy_autopilot_policy_generation::api::get_terraform_state::{get_terraform_state as get_terraform_state_api};
+use iam_policy_autopilot_policy_generation::api::get_terraform_state::get_terraform_state as get_terraform_state_api;
 use iam_policy_autopilot_policy_generation::api::model::{
     AwsContext, ExtractSdkCallsConfig, GeneratePolicyConfig,
 };
@@ -98,7 +98,7 @@ struct GeneratePolicyCliConfig {
     use_account_context: bool,
     use_terraform: bool,
     // Terraform directory, if using terraform
-    terraform_dir: PathBuf
+    terraform_dir: PathBuf,
 }
 
 impl GeneratePolicyCliConfig {
@@ -343,19 +343,18 @@ may change in future versions."
         use_terraform: bool,
 
         #[arg(long = "terraform-dir", default_value = env::current_exe().unwrap().parent().unwrap().to_path_buf().into_os_string())]
-        terraform_dir: PathBuf
+        terraform_dir: PathBuf,
     },
 
     /// List account context
     #[command(long_about = "List resources from AWS calling account context.")]
     GetAccountContext {},
 
-
     /// List terraform state context
     #[command(long_about = "List resources in terraform state.")]
     GetTerraformState {
         #[arg(long = "terraform-dir", default_value = env::current_exe().unwrap().parent().unwrap().to_path_buf().into_os_string())]
-        terraform_dir: PathBuf
+        terraform_dir: PathBuf,
     },
 
     /// Start MCP server
@@ -497,7 +496,7 @@ async fn handle_generate_policy(config: &GeneratePolicyCliConfig) -> Result<()> 
         generate_explanations: config.explain,
         use_account_context: config.use_account_context,
         use_terraform: config.use_terraform,
-        terraform_dir: config.terraform_dir.clone()
+        terraform_dir: config.terraform_dir.clone(),
     })
     .await?;
 
@@ -622,7 +621,7 @@ async fn main() {
             explain,
             use_account_context,
             use_terraform,
-            terraform_dir
+            terraform_dir,
         } => {
             // Initialize logging
             if let Err(e) = init_logging(debug) {
@@ -647,7 +646,7 @@ async fn main() {
                 explain,
                 use_account_context,
                 use_terraform,
-                terraform_dir
+                terraform_dir,
             };
 
             match handle_generate_policy(&config).await {
@@ -667,13 +666,15 @@ async fn main() {
             }
         },
 
-        Commands::GetTerraformState {terraform_dir} => match get_terraform_state(terraform_dir).await {
-            Ok(()) => ExitCode::Success,
-            Err(e) => {
-                print_cli_command_error(e);
-                ExitCode::Error
+        Commands::GetTerraformState { terraform_dir } => {
+            match get_terraform_state(terraform_dir).await {
+                Ok(()) => ExitCode::Success,
+                Err(e) => {
+                    print_cli_command_error(e);
+                    ExitCode::Error
+                }
             }
-        },
+        }
 
         Commands::McpServer { transport, port } => {
             match start_mcp_server(transport, port).await {

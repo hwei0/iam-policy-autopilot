@@ -8,11 +8,14 @@ use crate::{
         common::process_source_files,
         model::{GeneratePoliciesResult, GeneratePolicyConfig},
     },
+    context_fetcher::{
+        service::{AccountContextFetcherService, AccountResourceContext},
+        terraform_state::TerraformStateContext,
+        TerraformProjectExplorer,
+    },
     extraction::SdkMethodCall,
+    policy_generation::merge::PolicyMergerConfig,
     EnrichmentEngine, PolicyGenerationEngine,
-    context_fetcher::{TerraformProjectExplorer, service::{AccountContextFetcherService, AccountResourceContext},
-    terraform_state::TerraformStateContext}, extraction::SdkMethodCall, 
-    policy_generation::{MethodActionMapping, PolicyWithMetadata, merge::PolicyMergerConfig}
 };
 
 /// Generate policies for source files
@@ -85,11 +88,14 @@ pub async fn generate_policies(config: &GeneratePolicyConfig) -> Result<Generate
         &config.aws_context.account,
         merger_config,
         config.use_account_context,
-        config.use_terraform
+        config.use_terraform,
     );
 
     let account_context = if (config.use_account_context) {
-        &AccountContextFetcherService::new().await.fetch_account_context().await?
+        &AccountContextFetcherService::new()
+            .await
+            .fetch_account_context()
+            .await?
     } else {
         &AccountResourceContext {
             resource_map: HashMap::new(),
@@ -100,7 +106,9 @@ pub async fn generate_policies(config: &GeneratePolicyConfig) -> Result<Generate
         TerraformProjectExplorer::new(&config.terraform_dir)?
     } else {
         TerraformProjectExplorer {
-            terraform_state_context: TerraformStateContext { resource_arns: HashMap::new() }
+            terraform_state_context: TerraformStateContext {
+                resource_arns: HashMap::new(),
+            },
         }
     };
 
@@ -109,7 +117,7 @@ pub async fn generate_policies(config: &GeneratePolicyConfig) -> Result<Generate
         "Generating IAM policies from {} enriched method calls",
         enriched_results.len()
     );
-    let policies = policy_engine
+    let result = policy_engine
         .generate_policies(&enriched_results, account_context, &terraform_context)
         .context("Failed to generate IAM policies")?;
 

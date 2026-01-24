@@ -10,15 +10,13 @@ use super::merge::{PolicyMerger, PolicyMergerConfig};
 use super::utils::{ArnParser, ConditionValueProcessor};
 use super::{IamPolicy, Statement};
 use crate::api::model::GeneratePoliciesResult;
-use crate::enrichment::{Action, Condition, EnrichedSdkMethodCall, Explanations};
-use log::{debug, warn};
-
-use super::{ActionMapping, IamPolicy, MethodActionMapping, Statement};
-use crate::context_fetcher::TerraformProjectExplorer;
 use crate::context_fetcher::service::AccountResourceContext;
+use crate::context_fetcher::TerraformProjectExplorer;
+use crate::enrichment::{Action, Condition, EnrichedSdkMethodCall, Explanations};
 use crate::errors::{ExtractorError, Result};
 use crate::policy_generation::{PolicyType, PolicyWithMetadata};
 use crate::Explanation;
+use log::{debug, warn};
 
 /// Policy generation engine that converts enriched method calls into IAM policies
 #[derive(Debug, Clone)]
@@ -31,7 +29,7 @@ pub struct Engine<'a> {
     /// Policy merger for optimizing statements
     policy_merger: PolicyMerger,
     use_account_context: bool,
-    use_terraform_context: bool
+    use_terraform_context: bool,
 }
 
 impl<'a> Engine<'a> {
@@ -41,7 +39,7 @@ impl<'a> Engine<'a> {
         region: &'a str,
         account: &'a str,
         use_account_context: bool,
-        use_terraform_context: bool
+        use_terraform_context: bool,
     ) -> Self {
         Self::with_config(
             partition,
@@ -49,7 +47,7 @@ impl<'a> Engine<'a> {
             account,
             PolicyMergerConfig::default(),
             use_account_context,
-            use_terraform_context
+            use_terraform_context,
         )
     }
 
@@ -60,14 +58,14 @@ impl<'a> Engine<'a> {
         account: &'a str,
         merger_config: PolicyMergerConfig,
         use_account_context: bool,
-        use_terraform_context: bool
+        use_terraform_context: bool,
     ) -> Self {
         Self {
             arn_parser: ArnParser::new(partition, region, account),
             condition_processor: ConditionValueProcessor::new(partition, region, account),
             policy_merger: PolicyMerger::with_config(merger_config),
             use_account_context: use_account_context,
-            use_terraform_context: use_terraform_context
+            use_terraform_context: use_terraform_context,
         }
     }
 
@@ -80,12 +78,16 @@ impl<'a> Engine<'a> {
         &self,
         enriched_calls: &[EnrichedSdkMethodCall],
         account_resources: &AccountResourceContext,
-        terraform_resources: &TerraformProjectExplorer
+        terraform_resources: &TerraformProjectExplorer,
     ) -> Result<Vec<PolicyWithMetadata>> {
         let mut policies = Vec::new();
 
         for enriched_call in enriched_calls {
-            let policy = self.generate_policy_for_call(enriched_call, account_resources, terraform_resources)?;
+            let policy = self.generate_policy_for_call(
+                enriched_call,
+                account_resources,
+                terraform_resources,
+            )?;
             if policy.is_some() {
                 policies.push(policy.unwrap());
             }
@@ -99,7 +101,7 @@ impl<'a> Engine<'a> {
         &self,
         enriched_call: &EnrichedSdkMethodCall,
         account_resources: &AccountResourceContext,
-        terraform_resources: &TerraformProjectExplorer
+        terraform_resources: &TerraformProjectExplorer,
     ) -> Result<Option<PolicyWithMetadata>> {
         let mut policy = IamPolicy::new();
 
@@ -113,19 +115,24 @@ impl<'a> Engine<'a> {
                     .resources
                     .iter()
                     .flat_map(|resource| {
-                        [&account_resources
-                            .resource_map
-                            .get(&format!("{}:{}", enriched_call.service, resource.name))
-                            .unwrap_or(&Vec::new())
-                            .into_iter()
-                            .map(|fetched_resource| fetched_resource.arn.clone())
-                            .collect::<Vec<_>>()[..], 
-                         &terraform_resources.terraform_state_context.resource_arns.get(&format!("{}:{}", enriched_call.service, resource.name)).unwrap_or(&Vec::new())
-                            .into_iter()
-                            .map(|fetched_resource| fetched_resource.arn.clone())
-                            .collect::<Vec<_>>()[..]
-
-                        ].concat()
+                        [
+                            &account_resources
+                                .resource_map
+                                .get(&format!("{}:{}", enriched_call.service, resource.name))
+                                .unwrap_or(&Vec::new())
+                                .into_iter()
+                                .map(|fetched_resource| fetched_resource.arn.clone())
+                                .collect::<Vec<_>>()[..],
+                            &terraform_resources
+                                .terraform_state_context
+                                .resource_arns
+                                .get(&format!("{}:{}", enriched_call.service, resource.name))
+                                .unwrap_or(&Vec::new())
+                                .into_iter()
+                                .map(|fetched_resource| fetched_resource.arn.clone())
+                                .collect::<Vec<_>>()[..],
+                        ]
+                        .concat()
                     })
                     .collect::<Vec<_>>(),
                 index,
@@ -335,8 +342,14 @@ impl<'a> Engine<'a> {
     pub fn generate_policies(
         &self,
         enriched_calls: &[EnrichedSdkMethodCall],
+        account_resources: &AccountResourceContext,
+        terraform_resources: &TerraformProjectExplorer,
     ) -> Result<GeneratePoliciesResult> {
-        let policies = self.generate_individual_policies(enriched_calls)?;
+        let policies = self.generate_individual_policies(
+            enriched_calls,
+            account_resources,
+            terraform_resources,
+        )?;
 
         // Collect explanations
         let explanations = extract_explanations(enriched_calls);
@@ -371,12 +384,12 @@ mod tests {
     use std::collections::HashMap;
     use std::hash::Hash;
 
-    use super::*;
-    use crate::{Explanation, SdkMethodCall};
-    use crate::context_fetcher::terraform_state::TerraformStateContext;
     use super::super::Effect;
+    use super::*;
+    use crate::context_fetcher::terraform_state::TerraformStateContext;
     use crate::enrichment::{Action, EnrichedSdkMethodCall, Resource};
     use crate::errors::ExtractorError;
+    use crate::{Explanation, SdkMethodCall};
 
     fn create_test_engine() -> Engine<'static> {
         Engine::new("aws", "us-east-1", "123456789012", false, false)
@@ -418,9 +431,11 @@ mod tests {
                 &AccountResourceContext {
                     resource_map: HashMap::new(),
                 },
-                &TerraformProjectExplorer { terraform_state_context: TerraformStateContext {
-                    resource_arns: HashMap::new()
-                } }
+                &TerraformProjectExplorer {
+                    terraform_state_context: TerraformStateContext {
+                        resource_arns: HashMap::new(),
+                    },
+                },
             )
             .unwrap();
         assert_eq!(policies.len(), 1);
@@ -476,9 +491,12 @@ mod tests {
                 &[enriched_call],
                 &AccountResourceContext {
                     resource_map: HashMap::new(),
-                },                &TerraformProjectExplorer { terraform_state_context: TerraformStateContext {
-                    resource_arns: HashMap::new()
-                } }
+                },
+                &TerraformProjectExplorer {
+                    terraform_state_context: TerraformStateContext {
+                        resource_arns: HashMap::new(),
+                    },
+                },
             )
             .unwrap();
         assert_eq!(policies.len(), 1);
@@ -519,9 +537,12 @@ mod tests {
                 &[enriched_call],
                 &AccountResourceContext {
                     resource_map: HashMap::new(),
-                },                &TerraformProjectExplorer { terraform_state_context: TerraformStateContext {
-                    resource_arns: HashMap::new()
-                } }
+                },
+                &TerraformProjectExplorer {
+                    terraform_state_context: TerraformStateContext {
+                        resource_arns: HashMap::new(),
+                    },
+                },
             )
             .unwrap();
         assert_eq!(policies.len(), 1);
@@ -564,9 +585,12 @@ mod tests {
                 &[enriched_call],
                 &AccountResourceContext {
                     resource_map: HashMap::new(),
-                },                &TerraformProjectExplorer { terraform_state_context: TerraformStateContext {
-                    resource_arns: HashMap::new()
-                } }
+                },
+                &TerraformProjectExplorer {
+                    terraform_state_context: TerraformStateContext {
+                        resource_arns: HashMap::new(),
+                    },
+                },
             )
             .unwrap();
         assert_eq!(policies.len(), 1);
@@ -618,9 +642,12 @@ mod tests {
                 &[],
                 &AccountResourceContext {
                     resource_map: HashMap::new(),
-                },                &TerraformProjectExplorer { terraform_state_context: TerraformStateContext {
-                    resource_arns: HashMap::new()
-                } }
+                },
+                &TerraformProjectExplorer {
+                    terraform_state_context: TerraformStateContext {
+                        resource_arns: HashMap::new(),
+                    },
+                },
             )
             .unwrap();
         assert!(policies.is_empty());
@@ -642,9 +669,12 @@ mod tests {
             &[enriched_call],
             &AccountResourceContext {
                 resource_map: HashMap::new(),
-            },                &TerraformProjectExplorer { terraform_state_context: TerraformStateContext {
-                    resource_arns: HashMap::new()
-                } }
+            },
+            &TerraformProjectExplorer {
+                terraform_state_context: TerraformStateContext {
+                    resource_arns: HashMap::new(),
+                },
+            },
         );
         assert!(result.is_err());
 
@@ -1055,7 +1085,19 @@ mod tests {
             sdk_method_call: &sdk_call,
         };
 
-        let result = engine.generate_policies(&[enriched_call]).unwrap();
+        let result = engine
+            .generate_policies(
+                &[enriched_call],
+                &AccountResourceContext {
+                    resource_map: HashMap::new(),
+                },
+                &TerraformProjectExplorer {
+                    terraform_state_context: TerraformStateContext {
+                        resource_arns: HashMap::new(),
+                    },
+                },
+            )
+            .unwrap();
 
         // Verify policies were generated
         assert_eq!(result.policies.len(), 1);
@@ -1134,7 +1176,17 @@ mod tests {
         };
 
         let result = engine
-            .generate_policies(&[enriched_call1, enriched_call2])
+            .generate_policies(
+                &[enriched_call1, enriched_call2],
+                &AccountResourceContext {
+                    resource_map: HashMap::new(),
+                },
+                &TerraformProjectExplorer {
+                    terraform_state_context: TerraformStateContext {
+                        resource_arns: HashMap::new(),
+                    },
+                },
+            )
             .unwrap();
 
         // Verify explanations were grouped by action with deduplicated reasons
@@ -1209,7 +1261,19 @@ mod tests {
             sdk_method_call: &sdk_call,
         };
 
-        let result = engine.generate_policies(&[enriched_call]).unwrap();
+        let result = engine
+            .generate_policies(
+                &[enriched_call],
+                &AccountResourceContext {
+                    resource_map: HashMap::new(),
+                },
+                &TerraformProjectExplorer {
+                    terraform_state_context: TerraformStateContext {
+                        resource_arns: HashMap::new(),
+                    },
+                },
+            )
+            .unwrap();
 
         // Verify explanations include FAS expansion
         assert_eq!(
@@ -1283,7 +1347,19 @@ mod tests {
             sdk_method_call: &sdk_call,
         };
 
-        let result = engine.generate_policies(&[enriched_call]).unwrap();
+        let result = engine
+            .generate_policies(
+                &[enriched_call],
+                &AccountResourceContext {
+                    resource_map: HashMap::new(),
+                },
+                &TerraformProjectExplorer {
+                    terraform_state_context: TerraformStateContext {
+                        resource_arns: HashMap::new(),
+                    },
+                },
+            )
+            .unwrap();
 
         assert_eq!(
             result

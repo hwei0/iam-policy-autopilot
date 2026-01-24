@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 use crate::{enrichment::Explanations, policy_generation::PolicyWithMetadata};
 use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
-
 /// Configuration for generate_policies Api
 #[derive(Debug, Clone)]
 pub struct GeneratePolicyConfig {
@@ -21,6 +19,12 @@ pub struct GeneratePolicyConfig {
     pub disable_file_system_cache: bool,
     /// Generate explanations for why actions were added
     pub generate_explanations: bool,
+    /// Use account resources in policy generation in place of wildcards
+    pub use_account_context: bool,
+    /// enable terraform support?
+    pub use_terraform: bool,
+    /// terraform directory to cwd into
+    pub terraform_dir: PathBuf,
 }
 
 /// Result of policy generation including policies, action mappings, and explanations
@@ -32,12 +36,6 @@ pub struct GeneratePoliciesResult {
     /// Explanations for why actions were added (if requested)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub explanations: Option<Explanations>,
-    /// Use account resources in policy generation in place of wildcards
-    pub use_account_context: bool,
-    /// enable terraform support?
-    pub use_terraform: bool,
-    /// terraform directory to cwd into 
-    pub terraform_dir: PathBuf
 }
 
 /// Service hints for filtering SDK method calls

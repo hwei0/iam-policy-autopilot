@@ -71,7 +71,7 @@ pub async fn generate_application_policies(
         generate_explanations: false,
         use_account_context: false,
         use_terraform: false,
-        terraform_dir: PathBuf::new()
+        terraform_dir: PathBuf::new(),
     })
     .await?;
 
