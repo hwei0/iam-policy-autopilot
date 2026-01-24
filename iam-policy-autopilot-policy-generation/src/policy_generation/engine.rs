@@ -11,6 +11,11 @@ use super::utils::{ArnParser, ConditionValueProcessor};
 use super::{IamPolicy, Statement};
 use crate::api::model::GeneratePoliciesResult;
 use crate::enrichment::{Action, Condition, EnrichedSdkMethodCall, Explanations};
+use log::{debug, warn};
+
+use super::{ActionMapping, IamPolicy, MethodActionMapping, Statement};
+use crate::context_fetcher::TerraformProjectExplorer;
+use crate::context_fetcher::service::AccountResourceContext;
 use crate::errors::{ExtractorError, Result};
 use crate::policy_generation::{PolicyType, PolicyWithMetadata};
 use crate::Explanation;
@@ -25,25 +30,44 @@ pub struct Engine<'a> {
     condition_processor: ConditionValueProcessor<'a>,
     /// Policy merger for optimizing statements
     policy_merger: PolicyMerger,
+    use_account_context: bool,
+    use_terraform_context: bool
 }
 
 impl<'a> Engine<'a> {
     /// Create a new policy generation engine with AWS context
-    pub fn new(partition: &'a str, region: &'a str, account: &'a str) -> Self {
-        Self::with_merger_config(partition, region, account, PolicyMergerConfig::default())
+    pub fn new(
+        partition: &'a str,
+        region: &'a str,
+        account: &'a str,
+        use_account_context: bool,
+        use_terraform_context: bool
+    ) -> Self {
+        Self::with_config(
+            partition,
+            region,
+            account,
+            PolicyMergerConfig::default(),
+            use_account_context,
+            use_terraform_context
+        )
     }
 
     /// Create a new policy generation engine with AWS context and merger configuration
-    pub fn with_merger_config(
+    pub fn with_config(
         partition: &'a str,
         region: &'a str,
         account: &'a str,
         merger_config: PolicyMergerConfig,
+        use_account_context: bool,
+        use_terraform_context: bool
     ) -> Self {
         Self {
             arn_parser: ArnParser::new(partition, region, account),
             condition_processor: ConditionValueProcessor::new(partition, region, account),
             policy_merger: PolicyMerger::with_config(merger_config),
+            use_account_context: use_account_context,
+            use_terraform_context: use_terraform_context
         }
     }
 
@@ -55,12 +79,16 @@ impl<'a> Engine<'a> {
     fn generate_individual_policies(
         &self,
         enriched_calls: &[EnrichedSdkMethodCall],
+        account_resources: &AccountResourceContext,
+        terraform_resources: &TerraformProjectExplorer
     ) -> Result<Vec<PolicyWithMetadata>> {
         let mut policies = Vec::new();
 
         for enriched_call in enriched_calls {
-            let policy = self.generate_policy_for_call(enriched_call)?;
-            policies.push(policy);
+            let policy = self.generate_policy_for_call(enriched_call, account_resources, terraform_resources)?;
+            if policy.is_some() {
+                policies.push(policy.unwrap());
+            }
         }
 
         Ok(policies)
@@ -70,20 +98,51 @@ impl<'a> Engine<'a> {
     fn generate_policy_for_call(
         &self,
         enriched_call: &EnrichedSdkMethodCall,
-    ) -> Result<PolicyWithMetadata> {
+        account_resources: &AccountResourceContext,
+        terraform_resources: &TerraformProjectExplorer
+    ) -> Result<Option<PolicyWithMetadata>> {
         let mut policy = IamPolicy::new();
 
         for (index, action) in enriched_call.actions.iter().enumerate() {
-            let statement = self.generate_statement_for_action(action, enriched_call, index)?;
-            policy.add_statement(statement);
+            // TODO: why? dynamodb:[Resource { name: "key", arn_patterns: Some(["arn:${Partition}:kms:${Region}:${Account}:key/${KeyId}"]) }]
+            debug!("{}:{:?}", enriched_call.service, action.resources);
+            let statement = self.generate_statement_for_action(
+                action,
+                enriched_call,
+                action
+                    .resources
+                    .iter()
+                    .flat_map(|resource| {
+                        [&account_resources
+                            .resource_map
+                            .get(&format!("{}:{}", enriched_call.service, resource.name))
+                            .unwrap_or(&Vec::new())
+                            .into_iter()
+                            .map(|fetched_resource| fetched_resource.arn.clone())
+                            .collect::<Vec<_>>()[..], 
+                         &terraform_resources.terraform_state_context.resource_arns.get(&format!("{}:{}", enriched_call.service, resource.name)).unwrap_or(&Vec::new())
+                            .into_iter()
+                            .map(|fetched_resource| fetched_resource.arn.clone())
+                            .collect::<Vec<_>>()[..]
+
+                        ].concat()
+                    })
+                    .collect::<Vec<_>>(),
+                index,
+            )?;
+            if statement.is_some() {
+                policy.add_statement(statement.unwrap());
+            }
         }
 
         // Ensure we have at least one statement
         if policy.statements.is_empty() {
-            return Err(ExtractorError::policy_generation(format!(
+            warn!(
                 "No statements generated for method call: {}",
                 enriched_call.method_name
-            )));
+            );
+
+            return Ok(None);
         }
 
         let policy_with_metadata = PolicyWithMetadata {
@@ -91,7 +150,7 @@ impl<'a> Engine<'a> {
             policy_type: PolicyType::Identity,
         };
 
-        Ok(policy_with_metadata)
+        Ok(Some(policy_with_metadata))
     }
 
     /// Generate a policy statement for a single action
@@ -99,10 +158,19 @@ impl<'a> Engine<'a> {
         &self,
         action: &Action,
         enriched_call: &EnrichedSdkMethodCall,
+        account_resource_arns: Vec<String>,
         index: usize,
-    ) -> Result<Statement> {
+    ) -> Result<Option<Statement>> {
         // Process resources to get ARN patterns
-        let resources = self.process_action_resources(action)?;
+        let resources = if (self.use_account_context || self.use_terraform_context) {
+            account_resource_arns
+        } else {
+            self.process_action_resources(action)?
+        };
+
+        if resources.is_empty() {
+            return Ok(None);
+        }
 
         // Create the statement
         let mut statement = Statement::allow(vec![action.name.clone()], resources);
@@ -115,7 +183,7 @@ impl<'a> Engine<'a> {
         let sid = self.generate_statement_id(enriched_call, action, index);
         statement = statement.with_sid(sid);
 
-        Ok(statement)
+        Ok(Some(statement))
     }
 
     /// Process resources for an action to extract and process ARN patterns
@@ -300,15 +368,18 @@ fn extract_explanations(enriched_calls: &[EnrichedSdkMethodCall<'_>]) -> Explana
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+    use std::hash::Hash;
+
     use super::*;
     use crate::{Explanation, SdkMethodCall};
-
+    use crate::context_fetcher::terraform_state::TerraformStateContext;
     use super::super::Effect;
     use crate::enrichment::{Action, EnrichedSdkMethodCall, Resource};
     use crate::errors::ExtractorError;
 
     fn create_test_engine() -> Engine<'static> {
-        Engine::new("aws", "us-east-1", "123456789012")
+        Engine::new("aws", "us-east-1", "123456789012", false, false)
     }
 
     fn create_test_sdk_call() -> SdkMethodCall {
@@ -341,8 +412,18 @@ mod tests {
             sdk_method_call: &sdk_call,
         };
 
-        let result = engine.generate_policies(&[enriched_call]).unwrap();
-        assert_eq!(result.policies.len(), 1);
+        let policies = engine
+            .generate_policies(
+                &[enriched_call],
+                &AccountResourceContext {
+                    resource_map: HashMap::new(),
+                },
+                &TerraformProjectExplorer { terraform_state_context: TerraformStateContext {
+                    resource_arns: HashMap::new()
+                } }
+            )
+            .unwrap();
+        assert_eq!(policies.len(), 1);
 
         let policy = &result.policies[0].policy;
         assert_eq!(policy.version, "2012-10-17");
@@ -390,8 +471,17 @@ mod tests {
             sdk_method_call: &sdk_call,
         };
 
-        let result = engine.generate_policies(&[enriched_call]).unwrap();
-        assert_eq!(result.policies.len(), 1);
+        let policies = engine
+            .generate_policies(
+                &[enriched_call],
+                &AccountResourceContext {
+                    resource_map: HashMap::new(),
+                },                &TerraformProjectExplorer { terraform_state_context: TerraformStateContext {
+                    resource_arns: HashMap::new()
+                } }
+            )
+            .unwrap();
+        assert_eq!(policies.len(), 1);
 
         let policy = &result.policies[0].policy;
         assert_eq!(policy.statements.len(), 2);
@@ -424,8 +514,17 @@ mod tests {
             sdk_method_call: &sdk_call,
         };
 
-        let result = engine.generate_policies(&[enriched_call]).unwrap();
-        assert_eq!(result.policies.len(), 1);
+        let policies = engine
+            .generate_policies(
+                &[enriched_call],
+                &AccountResourceContext {
+                    resource_map: HashMap::new(),
+                },                &TerraformProjectExplorer { terraform_state_context: TerraformStateContext {
+                    resource_arns: HashMap::new()
+                } }
+            )
+            .unwrap();
+        assert_eq!(policies.len(), 1);
 
         let policy = &result.policies[0].policy;
         let statement = &policy.statements[0];
@@ -460,8 +559,17 @@ mod tests {
             sdk_method_call: &sdk_call,
         };
 
-        let result = engine.generate_policies(&[enriched_call]).unwrap();
-        assert_eq!(result.policies.len(), 1);
+        let policies = engine
+            .generate_policies(
+                &[enriched_call],
+                &AccountResourceContext {
+                    resource_map: HashMap::new(),
+                },                &TerraformProjectExplorer { terraform_state_context: TerraformStateContext {
+                    resource_arns: HashMap::new()
+                } }
+            )
+            .unwrap();
+        assert_eq!(policies.len(), 1);
 
         let policy = &result.policies[0].policy;
         let statement = &policy.statements[0];
@@ -505,8 +613,17 @@ mod tests {
     #[test]
     fn test_generate_policies_empty_input() {
         let engine = create_test_engine();
-        let result = engine.generate_policies(&[]).unwrap();
-        assert!(result.policies.is_empty());
+        let policies = engine
+            .generate_policies(
+                &[],
+                &AccountResourceContext {
+                    resource_map: HashMap::new(),
+                },                &TerraformProjectExplorer { terraform_state_context: TerraformStateContext {
+                    resource_arns: HashMap::new()
+                } }
+            )
+            .unwrap();
+        assert!(policies.is_empty());
     }
 
     #[test]
@@ -521,7 +638,14 @@ mod tests {
             sdk_method_call: &sdk_call,
         };
 
-        let result = engine.generate_policies(&[enriched_call]);
+        let result = engine.generate_policies(
+            &[enriched_call],
+            &AccountResourceContext {
+                resource_map: HashMap::new(),
+            },                &TerraformProjectExplorer { terraform_state_context: TerraformStateContext {
+                    resource_arns: HashMap::new()
+                } }
+        );
         assert!(result.is_err());
 
         if let Err(ExtractorError::PolicyGeneration { message, .. }) = result {
@@ -828,7 +952,7 @@ mod tests {
     #[test]
     fn test_stringlike_operator_when_partition_region_account_is_wildcard() {
         // Test when partition is "*" - should produce StringLike
-        let engine_wildcard_partition = Engine::new("*", "us-east-1", "123456789012");
+        let engine_wildcard_partition = Engine::new("*", "us-east-1", "123456789012", false, false);
 
         let action = Action::new(
             "s3:GetObject".to_string(),
@@ -854,7 +978,7 @@ mod tests {
         assert_eq!(condition.operator, crate::enrichment::Operator::StringLike);
 
         // Test when region is "*" - should produce StringLike
-        let engine_wildcard_region = Engine::new("aws", "*", "123456789012");
+        let engine_wildcard_region = Engine::new("aws", "*", "123456789012", false, false);
 
         let processed_conditions = engine_wildcard_region
             .process_action_conditions(&action)
@@ -869,7 +993,7 @@ mod tests {
         assert_eq!(condition.operator, crate::enrichment::Operator::StringLike);
 
         // Test when account is "*" - should produce StringLike
-        let engine_wildcard_account = Engine::new("aws", "us-east-1", "*");
+        let engine_wildcard_account = Engine::new("aws", "us-east-1", "*", false, false);
 
         let processed_conditions = engine_wildcard_account
             .process_action_conditions(&action)
@@ -881,7 +1005,7 @@ mod tests {
         assert_eq!(condition.operator, crate::enrichment::Operator::StringLike);
 
         // Test when all are specific values - should keep StringEquals
-        let engine_no_wildcards = Engine::new("aws", "us-east-1", "123456789012");
+        let engine_no_wildcards = Engine::new("aws", "us-east-1", "123456789012", false, false);
 
         let processed_conditions = engine_no_wildcards
             .process_action_conditions(&action)

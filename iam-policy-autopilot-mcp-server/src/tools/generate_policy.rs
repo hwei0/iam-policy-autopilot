@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::Context;
 use anyhow::Error;
 use anyhow::Result;
@@ -67,6 +69,9 @@ pub async fn generate_application_policies(
         // accept it as part of the cli input when starting the mcp server
         disable_file_system_cache: true,
         generate_explanations: false,
+        use_account_context: false,
+        use_terraform: false,
+        terraform_dir: PathBuf::new()
     })
     .await?;
 

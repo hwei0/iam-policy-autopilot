@@ -198,6 +198,33 @@ pub enum ExtractorError {
         /// Formatted list of invalid services with suggestions
         suggestions: String,
     },
+
+    #[error("Fetching account resource context error: {message}")]
+    AccountResourceContext {
+        /// Detailed error message
+        message: String,
+        /// Optional underlying error
+        #[source]
+        source: Option<Box<dyn std::error::Error + Send + Sync>>,
+    },
+
+    #[error("Error performing terraform state command `{command}`: {message}")]
+    TerraformStateCommandError {
+        command: String,
+        message: String,
+    },
+
+    #[error("Failed to parse terraform state: {message}. Terraform output: {terraform_state}")]
+    TerraformStateParseError{ 
+        message: String,
+        terraform_state: String
+    },
+
+    #[error("Failed to extract terraform state: {message}")]
+    TerraformStateError {
+        message: String,
+        source: Option<Box<dyn std::error::Error + Send + Sync>>,
+    }
 }
 
 impl ExtractorError {
@@ -294,6 +321,28 @@ impl ExtractorError {
         Self::InvalidServiceHints {
             suggestions: suggestions.into(),
         }
+    }
+
+    pub(crate) fn account_resource_context_with_source(
+        message: impl Into<String>,
+        source: impl std::error::Error + Send + Sync + 'static,
+    ) -> Self {
+        Self::AccountResourceContext {
+            message: message.into(),
+            source: Some(Box::new(source)),
+        }
+    }
+
+    pub(crate) fn terraform_state_command(command: String, message: String) -> Self {
+        Self::TerraformStateCommandError { command: command, message: message }
+    }
+
+    pub(crate) fn terraform_state_parse(message: String, terraform_state: String) -> Self {
+        Self::TerraformStateParseError { message: message, terraform_state: terraform_state }
+    }
+
+    pub(crate) fn terraform_state_with_source(message: String, source: impl std::error::Error + Send + Sync + 'static,) -> Self {
+        Self::TerraformStateError { message: message, source: Some(Box::new(source)) }
     }
 }
 

@@ -17,10 +17,12 @@
 //! See `types::ExitCode` for the enum definition.
 
 use std::path::PathBuf;
-use std::process;
+use std::{env, process};
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
+use iam_policy_autopilot_policy_generation::api::get_account_context::get_account_context as get_account_context_api;
+use iam_policy_autopilot_policy_generation::api::get_terraform_state::{get_terraform_state as get_terraform_state_api};
 use iam_policy_autopilot_policy_generation::api::model::{
     AwsContext, ExtractSdkCallsConfig, GeneratePolicyConfig,
 };
@@ -28,6 +30,7 @@ use iam_policy_autopilot_policy_generation::api::{extract_sdk_calls, generate_po
 use iam_policy_autopilot_policy_generation::extraction::SdkMethodCall;
 use iam_policy_autopilot_tools::PolicyUploader;
 use log::{debug, info, trace};
+use std::process::Command;
 
 mod commands;
 mod output;
@@ -92,6 +95,10 @@ struct GeneratePolicyCliConfig {
     disable_cache: bool,
     /// Generate explanations for why actions were added
     explain: bool,
+    use_account_context: bool,
+    use_terraform: bool,
+    // Terraform directory, if using terraform
+    terraform_dir: PathBuf
 }
 
 impl GeneratePolicyCliConfig {
@@ -329,6 +336,26 @@ was added to the policy. Explanations include the initial operation with locatio
 may change in future versions."
         )]
         explain: bool,
+        #[arg(long = "use-account-context", default_value_t = false)]
+        use_account_context: bool,
+
+        #[arg(long = "use-terraform", default_value_t = false)]
+        use_terraform: bool,
+
+        #[arg(long = "terraform-dir", default_value = env::current_exe().unwrap().parent().unwrap().to_path_buf().into_os_string())]
+        terraform_dir: PathBuf
+    },
+
+    /// List account context
+    #[command(long_about = "List resources from AWS calling account context.")]
+    GetAccountContext {},
+
+
+    /// List terraform state context
+    #[command(long_about = "List resources in terraform state.")]
+    GetTerraformState {
+        #[arg(long = "terraform-dir", default_value = env::current_exe().unwrap().parent().unwrap().to_path_buf().into_os_string())]
+        terraform_dir: PathBuf
     },
 
     /// Start MCP server
@@ -418,6 +445,26 @@ async fn handle_extract_sdk_calls(config: &SharedConfig) -> Result<()> {
     Ok(())
 }
 
+async fn get_account_context() -> Result<()> {
+    info!("Running get-account-context command");
+
+    let res = get_account_context_api().await?;
+
+    print!("{}", serde_json::to_string_pretty(&res)?);
+
+    Ok(())
+}
+
+async fn get_terraform_state(terraform_dir: PathBuf) -> Result<()> {
+    info!("Running get-terraform-state command");
+
+    let res = get_terraform_state_api(terraform_dir).await?;
+
+    print!("{}", serde_json::to_string_pretty(&res.resource_arns)?);
+
+    Ok(())
+}
+
 /// Handle the generate-policies subcommand
 async fn handle_generate_policy(config: &GeneratePolicyCliConfig) -> Result<()> {
     info!("Running generate-policies command");
@@ -448,6 +495,9 @@ async fn handle_generate_policy(config: &GeneratePolicyCliConfig) -> Result<()> 
         minimize_policy_size: config.minimal_policy_size,
         disable_file_system_cache: config.disable_cache,
         generate_explanations: config.explain,
+        use_account_context: config.use_account_context,
+        use_terraform: config.use_terraform,
+        terraform_dir: config.terraform_dir.clone()
     })
     .await?;
 
@@ -570,6 +620,9 @@ async fn main() {
             disable_cache,
             service_hints,
             explain,
+            use_account_context,
+            use_terraform,
+            terraform_dir
         } => {
             // Initialize logging
             if let Err(e) = init_logging(debug) {
@@ -592,6 +645,9 @@ async fn main() {
                 minimal_policy_size,
                 disable_cache,
                 explain,
+                use_account_context,
+                use_terraform,
+                terraform_dir
             };
 
             match handle_generate_policy(&config).await {
@@ -602,6 +658,22 @@ async fn main() {
                 }
             }
         }
+
+        Commands::GetAccountContext {} => match get_account_context().await {
+            Ok(()) => ExitCode::Success,
+            Err(e) => {
+                print_cli_command_error(e);
+                ExitCode::Error
+            }
+        },
+
+        Commands::GetTerraformState {terraform_dir} => match get_terraform_state(terraform_dir).await {
+            Ok(()) => ExitCode::Success,
+            Err(e) => {
+                print_cli_command_error(e);
+                ExitCode::Error
+            }
+        },
 
         Commands::McpServer { transport, port } => {
             match start_mcp_server(transport, port).await {
