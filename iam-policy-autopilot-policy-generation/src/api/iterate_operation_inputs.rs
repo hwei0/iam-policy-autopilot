@@ -47,7 +47,7 @@ fn flatten_dataframe_recursively(mut df: DataFrame) -> Result<DataFrame> {
     loop {
         let mut has_nested = false;
         let schema = df.schema();
-        
+
         // Check if any columns are structs or lists
         for field in schema.iter_fields() {
             if matches!(field.dtype(), DataType::Struct(_) | DataType::List(_)) {
@@ -55,61 +55,67 @@ fn flatten_dataframe_recursively(mut df: DataFrame) -> Result<DataFrame> {
                 break;
             }
         }
-        
+
         // If no nested columns, we're done
         if !has_nested {
             break;
         }
-        
+
         // First, explode any list columns
         for field in schema.clone().iter_fields() {
             if matches!(field.dtype(), DataType::List(_)) {
                 debug!("Exploding list column: {}", field.name());
-                df = df.explode([field.name().clone()])
-                    .context(format!("Failed to explode column {}", field.name()))?.clone();
+                df = df
+                    .explode([field.name().clone()])
+                    .context(format!("Failed to explode column {}", field.name()))?
+                    .clone();
                 // After exploding, we need to re-check the schema
                 break;
             }
         }
-        
+
         // Then flatten struct columns
         let schema = df.schema();
         let mut columns_to_add = Vec::new();
         let mut columns_to_remove = Vec::new();
-        
+
         for (col_idx, field) in schema.iter_fields().enumerate() {
             if let DataType::Struct(fields) = field.dtype() {
                 debug!("Flattening struct column: {}", field.name());
                 columns_to_remove.push(field.name().to_string());
-                
+
                 let series = &df.get_columns()[col_idx];
-                
+
                 // Extract each field from the struct
                 for (field_idx, struct_field) in fields.iter().enumerate() {
                     let field_name = format!("{}-{}", field.name(), struct_field.name());
-                    
+
                     // Extract the field as a new series
                     if let Ok(struct_chunked) = series.struct_() {
-                        if let Some(field_series) = struct_chunked.fields_as_series().get(field_idx) {
+                        if let Some(field_series) = struct_chunked.fields_as_series().get(field_idx)
+                        {
                             columns_to_add.push((field_name, field_series.clone()));
                         }
                     }
                 }
             }
         }
-        
+
         // Remove struct columns and add flattened columns
         for col_name in &columns_to_remove {
-            df = df.drop(col_name.as_str())
+            df = df
+                .drop(col_name.as_str())
                 .context(format!("Failed to drop column {}", col_name))?;
         }
-        
+
         for (col_name, series) in columns_to_add {
-            df = df.with_column(series.with_name(col_name.as_str().into()))
-                .context(format!("Failed to add column {}", col_name))?.clone();
+            df = df
+                .with_column(series.with_name(col_name.as_str().into()))
+                .context(format!("Failed to add column {}", col_name))?
+                .clone();
         }
     }
-    
+
     Ok(df)
 }
 
@@ -323,10 +329,15 @@ pub async fn iterate_operation_inputs(
     .context("Failed to serialize result to JSON")?;
 
     // Write JSON to file
-    std::fs::write(&output_file, &json_output)
-        .context(format!("Failed to write output file: {}", output_file.display()))?;
+    std::fs::write(&output_file, &json_output).context(format!(
+        "Failed to write output file: {}",
+        output_file.display()
+    ))?;
 
-    info!("Successfully wrote JSON output to: {}", output_file.display());
+    info!(
+        "Successfully wrote JSON output to: {}",
+        output_file.display()
+    );
 
     // Create DataFrame from JSON using JsonReader
     info!("Creating DataFrame from JSON content");
@@ -421,7 +432,10 @@ mod tests {
         }
 
         // Verify CSV was also created
-        let csv_file = output_file.parent().unwrap().join("operation_inputs_iteration.csv");
+        let csv_file = output_file
+            .parent()
+            .unwrap()
+            .join("operation_inputs_iteration.csv");
         assert!(csv_file.exists(), "CSV file should exist");
     }
 
@@ -432,7 +446,11 @@ mod tests {
         let output_path = temp_dir.path().to_path_buf();
 
         let result = iterate_operation_inputs(output_path, true).await;
-        assert!(result.is_ok(), "Failed to iterate with pretty JSON: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Failed to iterate with pretty JSON: {:?}",
+            result
+        );
 
         let output_file = result.unwrap();
 
@@ -498,7 +516,10 @@ mod tests {
         let input_members: Vec<InputMemberInfo> = serde_json::from_str(&content).unwrap();
 
         // Verify we found input members
-        assert!(!input_members.is_empty(), "Should find at least one input member");
+        assert!(
+            !input_members.is_empty(),
+            "Should find at least one input member"
+        );
 
         // Verify structure of first member
         let member = &input_members[0];

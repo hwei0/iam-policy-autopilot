@@ -21,12 +21,16 @@ use std::process;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use iam_policy_autopilot_policy_generation::api::analyze_terraform_resources::{analyze_terraform_resources, extract_terraform_resource_sdk_calls};
-use iam_policy_autopilot_policy_generation::api::{iterate_service_references, iterate_operation_inputs};
+use iam_policy_autopilot_policy_generation::api::analyze_terraform_resources::{
+    analyze_terraform_resources, extract_terraform_resource_sdk_calls,
+};
 use iam_policy_autopilot_policy_generation::api::model::{
     AwsContext, ExtractSdkCallsConfig, GeneratePolicyConfig,
 };
 use iam_policy_autopilot_policy_generation::api::{extract_sdk_calls, generate_policies};
+use iam_policy_autopilot_policy_generation::api::{
+    iterate_operation_inputs, iterate_service_references,
+};
 use iam_policy_autopilot_policy_generation::extraction::SdkMethodCall;
 use iam_policy_autopilot_tools::PolicyUploader;
 use log::{debug, info, trace};
@@ -385,7 +389,7 @@ Only used when --transport=http. The server will bind to 127.0.0.1 (localhost) o
         resourceSchemaFile: PathBuf,
 
         #[arg(long = "analysis-output-dir")]
-        analysisOutputDir: PathBuf
+        analysisOutputDir: PathBuf,
     },
 
     #[command(
@@ -422,7 +426,7 @@ Only used when --transport=http. The server will bind to 127.0.0.1 (localhost) o
         /// Enable debug logging output to stderr (most verbose)
         #[arg(hide = true, short = 'd', long = "debug")]
         debug: bool,
-    }
+    },
 }
 
 /// Initialize logging based on configuration
@@ -683,7 +687,9 @@ async fn main() {
             }
         },
 
-        Commands::ExtractTerraformResourceSdkCalls { resourceExtractorOutput } => match extract_terraform_resource_sdk_calls(resourceExtractorOutput).await {
+        Commands::ExtractTerraformResourceSdkCalls {
+            resourceExtractorOutput,
+        } => match extract_terraform_resource_sdk_calls(resourceExtractorOutput).await {
             Ok(()) => ExitCode::Success,
             Err(e) => {
                 print_cli_command_error(e);
@@ -691,7 +697,17 @@ async fn main() {
             }
         },
 
-        Commands::AnalyzeTerraformResources { resourceExtractorOutput, resourceSchemaFile, analysisOutputDir } => match analyze_terraform_resources(resourceExtractorOutput, resourceSchemaFile, analysisOutputDir).await {
+        Commands::AnalyzeTerraformResources {
+            resourceExtractorOutput,
+            resourceSchemaFile,
+            analysisOutputDir,
+        } => match analyze_terraform_resources(
+            resourceExtractorOutput,
+            resourceSchemaFile,
+            analysisOutputDir,
+        )
+        .await
+        {
             Ok(()) => ExitCode::Success,
             Err(e) => {
                 print_cli_command_error(e);
@@ -699,7 +715,11 @@ async fn main() {
             }
         },
 
-        Commands::IterateServiceReferences { output_dir, pretty, debug } => {
+        Commands::IterateServiceReferences {
+            output_dir,
+            pretty,
+            debug,
+        } => {
             // Initialize logging
             if let Err(e) = init_logging(debug) {
                 eprintln!("iam-policy-autopilot: Failed to initialize logging: {}", e);
@@ -718,7 +738,11 @@ async fn main() {
             }
         }
 
-        Commands::IterateOperationInputs { output_dir, pretty, debug } => {
+        Commands::IterateOperationInputs {
+            output_dir,
+            pretty,
+            debug,
+        } => {
             // Initialize logging
             if let Err(e) = init_logging(debug) {
                 eprintln!("iam-policy-autopilot: Failed to initialize logging: {}", e);

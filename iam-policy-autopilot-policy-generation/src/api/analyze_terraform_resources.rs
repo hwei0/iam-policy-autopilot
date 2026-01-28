@@ -1,9 +1,9 @@
-use std::path::PathBuf;
-use std::fs;
-use itertools::Itertools;
-use serde::{Deserialize, Serialize};
 use anyhow::{Context, Result};
+use itertools::Itertools;
 use polars::prelude::*;
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::PathBuf;
 
 use crate::api::{extract_sdk_calls, model::ExtractSdkCallsConfig};
 use crate::extraction::SdkMethodCall;
@@ -182,18 +182,24 @@ impl ResourceAnalysisColumns {
     /// Append a row to the columns
     pub fn append(&mut self, row: ResourceAnalysisRow) {
         self.service_names.push(row.service_name);
-        self.terraform_resource_names.push(row.terraform_resource_name);
+        self.terraform_resource_names
+            .push(row.terraform_resource_name);
         self.aws_sdk_resource_names.push(row.aws_sdk_resource_name);
         self.num_before_sdk_calls.push(row.num_before_sdk_calls);
         self.before_sdk_calls.push(row.before_sdk_calls);
-        self.num_intermediate_sdk_calls.push(row.num_intermediate_sdk_calls);
+        self.num_intermediate_sdk_calls
+            .push(row.num_intermediate_sdk_calls);
         self.intermediate_sdk_calls.push(row.intermediate_sdk_calls);
         self.num_after_sdk_calls.push(row.num_after_sdk_calls);
         self.after_sdk_calls.push(row.after_sdk_calls);
-        self.num_create_function_stack_calls.push(row.num_create_function_stack_calls);
-        self.create_function_stack_calls.push(row.create_function_stack_calls);
-        self.num_create_function_only_calls.push(row.num_create_function_only_calls);
-        self.create_function_only_calls.push(row.create_function_only_calls);
+        self.num_create_function_stack_calls
+            .push(row.num_create_function_stack_calls);
+        self.create_function_stack_calls
+            .push(row.create_function_stack_calls);
+        self.num_create_function_only_calls
+            .push(row.num_create_function_only_calls);
+        self.create_function_only_calls
+            .push(row.create_function_only_calls);
         self.first_call_row.push(row.first_call_row);
         self.first_call_col.push(row.first_call_col);
         self.last_call_row.push(row.last_call_row);
@@ -205,18 +211,36 @@ impl ResourceAnalysisColumns {
     pub fn to_dataframe(self) -> PolarsResult<DataFrame> {
         DataFrame::new(vec![
             Column::new("service_name".into(), self.service_names),
-            Column::new("terraform_resource_name".into(), self.terraform_resource_names),
+            Column::new(
+                "terraform_resource_name".into(),
+                self.terraform_resource_names,
+            ),
             Column::new("aws_sdk_resource_name".into(), self.aws_sdk_resource_names),
             Column::new("num_before_sdk_calls".into(), self.num_before_sdk_calls),
             Column::new("before_sdk_calls".into(), self.before_sdk_calls),
-            Column::new("num_intermediate_sdk_calls".into(), self.num_intermediate_sdk_calls),
+            Column::new(
+                "num_intermediate_sdk_calls".into(),
+                self.num_intermediate_sdk_calls,
+            ),
             Column::new("intermediate_sdk_calls".into(), self.intermediate_sdk_calls),
             Column::new("num_after_sdk_calls".into(), self.num_after_sdk_calls),
             Column::new("after_sdk_calls".into(), self.after_sdk_calls),
-            Column::new("num_create_function_stack_calls".into(), self.num_create_function_stack_calls),
-            Column::new("create_function_stack_calls".into(), self.create_function_stack_calls),
-            Column::new("num_create_function_only_calls".into(), self.num_create_function_only_calls),
-            Column::new("create_function_only_calls".into(), self.create_function_only_calls),
+            Column::new(
+                "num_create_function_stack_calls".into(),
+                self.num_create_function_stack_calls,
+            ),
+            Column::new(
+                "create_function_stack_calls".into(),
+                self.create_function_stack_calls,
+            ),
+            Column::new(
+                "num_create_function_only_calls".into(),
+                self.num_create_function_only_calls,
+            ),
+            Column::new(
+                "create_function_only_calls".into(),
+                self.create_function_only_calls,
+            ),
             Column::new("first_call_row".into(), self.first_call_row),
             Column::new("first_call_col".into(), self.first_call_col),
             Column::new("last_call_row".into(), self.last_call_row),
@@ -287,7 +311,7 @@ pub async fn extract_terraform_resource_sdk_calls(
         // Load and deserialize metadata.json using serde_json
         let metadata_file = fs::File::open(&metadata_path)
             .with_context(|| format!("Failed to open metadata file: {:?}", metadata_path))?;
-        
+
         let metadata: MetadataStruct = serde_json::from_reader(metadata_file)
             .with_context(|| format!("Failed to deserialize metadata JSON: {:?}", metadata_path))?;
 
@@ -299,7 +323,12 @@ pub async fn extract_terraform_resource_sdk_calls(
         };
         let after_calls_methods = extract_sdk_calls::extract_sdk_calls(&after_calls_config)
             .await
-            .with_context(|| format!("Failed to extract SDK calls from after_calls.go: {:?}", after_calls))?;
+            .with_context(|| {
+                format!(
+                    "Failed to extract SDK calls from after_calls.go: {:?}",
+                    after_calls
+                )
+            })?;
 
         // Extract SDK calls from before_calls.go
         let before_calls_config = ExtractSdkCallsConfig {
@@ -309,7 +338,12 @@ pub async fn extract_terraform_resource_sdk_calls(
         };
         let before_calls_methods = extract_sdk_calls::extract_sdk_calls(&before_calls_config)
             .await
-            .with_context(|| format!("Failed to extract SDK calls from before_calls.go: {:?}", before_calls))?;
+            .with_context(|| {
+                format!(
+                    "Failed to extract SDK calls from before_calls.go: {:?}",
+                    before_calls
+                )
+            })?;
 
         // Extract SDK calls from create_function_calls.go
         let create_function_calls_config = ExtractSdkCallsConfig {
@@ -317,9 +351,15 @@ pub async fn extract_terraform_resource_sdk_calls(
             language: Some("go".to_string()),
             service_hints: None,
         };
-        let create_function_calls_methods = extract_sdk_calls::extract_sdk_calls(&create_function_calls_config)
-            .await
-            .with_context(|| format!("Failed to extract SDK calls from create_function_calls.go: {:?}", create_function_calls))?;
+        let create_function_calls_methods =
+            extract_sdk_calls::extract_sdk_calls(&create_function_calls_config)
+                .await
+                .with_context(|| {
+                    format!(
+                        "Failed to extract SDK calls from create_function_calls.go: {:?}",
+                        create_function_calls
+                    )
+                })?;
 
         // Extract SDK calls from create_function_only.go
         let create_function_only_config = ExtractSdkCallsConfig {
@@ -327,9 +367,15 @@ pub async fn extract_terraform_resource_sdk_calls(
             language: Some("go".to_string()),
             service_hints: None,
         };
-        let create_function_only_methods = extract_sdk_calls::extract_sdk_calls(&create_function_only_config)
-            .await
-            .with_context(|| format!("Failed to extract SDK calls from create_function_only.go: {:?}", create_function_only))?;
+        let create_function_only_methods =
+            extract_sdk_calls::extract_sdk_calls(&create_function_only_config)
+                .await
+                .with_context(|| {
+                    format!(
+                        "Failed to extract SDK calls from create_function_only.go: {:?}",
+                        create_function_only
+                    )
+                })?;
 
         // Extract SDK calls from intermediate_calls.go
         let intermediate_calls_config = ExtractSdkCallsConfig {
@@ -337,9 +383,15 @@ pub async fn extract_terraform_resource_sdk_calls(
             language: Some("go".to_string()),
             service_hints: None,
         };
-        let intermediate_calls_methods = extract_sdk_calls::extract_sdk_calls(&intermediate_calls_config)
-            .await
-            .with_context(|| format!("Failed to extract SDK calls from intermediate_calls.go: {:?}", intermediate_calls))?;
+        let intermediate_calls_methods =
+            extract_sdk_calls::extract_sdk_calls(&intermediate_calls_config)
+                .await
+                .with_context(|| {
+                    format!(
+                        "Failed to extract SDK calls from intermediate_calls.go: {:?}",
+                        intermediate_calls
+                    )
+                })?;
 
         // Define output JSON file paths
         let after_calls_json_path = path.join("after_calls_extracted_sdk.json");
@@ -373,38 +425,73 @@ pub async fn extract_terraform_resource_sdk_calls(
         }
 
         // Write extracted methods to JSON files using SdkMethodCall::serialize_list
-        let full_output = true;  // Include full metadata
-        let pretty = true;  // Pretty print JSON
+        let full_output = true; // Include full metadata
+        let pretty = true; // Pretty print JSON
 
         // Write after_calls_extracted_sdk.json
-        let after_calls_json = SdkMethodCall::serialize_list(&after_calls_methods.methods, full_output, pretty)
-            .context("Failed to serialize after_calls methods")?;
-        fs::write(&after_calls_json_path, after_calls_json)
-            .with_context(|| format!("Failed to write after_calls JSON: {:?}", after_calls_json_path))?;
+        let after_calls_json =
+            SdkMethodCall::serialize_list(&after_calls_methods.methods, full_output, pretty)
+                .context("Failed to serialize after_calls methods")?;
+        fs::write(&after_calls_json_path, after_calls_json).with_context(|| {
+            format!(
+                "Failed to write after_calls JSON: {:?}",
+                after_calls_json_path
+            )
+        })?;
 
         // Write before_calls_extracted_sdk.json
-        let before_calls_json = SdkMethodCall::serialize_list(&before_calls_methods.methods, full_output, pretty)
-            .context("Failed to serialize before_calls methods")?;
-        fs::write(&before_calls_json_path, before_calls_json)
-            .with_context(|| format!("Failed to write before_calls JSON: {:?}", before_calls_json_path))?;
+        let before_calls_json =
+            SdkMethodCall::serialize_list(&before_calls_methods.methods, full_output, pretty)
+                .context("Failed to serialize before_calls methods")?;
+        fs::write(&before_calls_json_path, before_calls_json).with_context(|| {
+            format!(
+                "Failed to write before_calls JSON: {:?}",
+                before_calls_json_path
+            )
+        })?;
 
         // Write create_function_calls_extracted_sdk.json
-        let create_function_calls_json = SdkMethodCall::serialize_list(&create_function_calls_methods.methods, full_output, pretty)
-            .context("Failed to serialize create_function_calls methods")?;
-        fs::write(&create_function_calls_json_path, create_function_calls_json)
-            .with_context(|| format!("Failed to write create_function_calls JSON: {:?}", create_function_calls_json_path))?;
+        let create_function_calls_json = SdkMethodCall::serialize_list(
+            &create_function_calls_methods.methods,
+            full_output,
+            pretty,
+        )
+        .context("Failed to serialize create_function_calls methods")?;
+        fs::write(&create_function_calls_json_path, create_function_calls_json).with_context(
+            || {
+                format!(
+                    "Failed to write create_function_calls JSON: {:?}",
+                    create_function_calls_json_path
+                )
+            },
+        )?;
 
         // Write create_function_only_extracted_sdk.json
-        let create_function_only_json = SdkMethodCall::serialize_list(&create_function_only_methods.methods, full_output, pretty)
-            .context("Failed to serialize create_function_only methods")?;
-        fs::write(&create_function_only_json_path, create_function_only_json)
-            .with_context(|| format!("Failed to write create_function_only JSON: {:?}", create_function_only_json_path))?;
+        let create_function_only_json = SdkMethodCall::serialize_list(
+            &create_function_only_methods.methods,
+            full_output,
+            pretty,
+        )
+        .context("Failed to serialize create_function_only methods")?;
+        fs::write(&create_function_only_json_path, create_function_only_json).with_context(
+            || {
+                format!(
+                    "Failed to write create_function_only JSON: {:?}",
+                    create_function_only_json_path
+                )
+            },
+        )?;
 
         // Write intermediate_calls_extracted_sdk.json
-        let intermediate_calls_json = SdkMethodCall::serialize_list(&intermediate_calls_methods.methods, full_output, pretty)
-            .context("Failed to serialize intermediate_calls methods")?;
-        fs::write(&intermediate_calls_json_path, intermediate_calls_json)
-            .with_context(|| format!("Failed to write intermediate_calls JSON: {:?}", intermediate_calls_json_path))?;
+        let intermediate_calls_json =
+            SdkMethodCall::serialize_list(&intermediate_calls_methods.methods, full_output, pretty)
+                .context("Failed to serialize intermediate_calls methods")?;
+        fs::write(&intermediate_calls_json_path, intermediate_calls_json).with_context(|| {
+            format!(
+                "Failed to write intermediate_calls JSON: {:?}",
+                intermediate_calls_json_path
+            )
+        })?;
 
         println!(
             "Extracted and wrote SDK calls for resource: {} (Service: {})",
@@ -487,7 +574,7 @@ pub async fn analyze_terraform_resources(
         // Load and deserialize metadata.json using serde_json
         let metadata_file = fs::File::open(&metadata_path)
             .with_context(|| format!("Failed to open metadata file: {:?}", metadata_path))?;
-        
+
         let metadata: MetadataStruct = serde_json::from_reader(metadata_file)
             .with_context(|| format!("Failed to deserialize metadata JSON: {:?}", metadata_path))?;
 
@@ -513,53 +600,107 @@ pub async fn analyze_terraform_resources(
         }
 
         // Read and deserialize after_calls_extracted_sdk.json
-        let after_calls_json_file = fs::File::open(&after_calls_json_path)
-            .with_context(|| format!("Failed to open after_calls JSON: {:?}", after_calls_json_path))?;
-        let after_calls_methods: Vec<SdkMethodCall> = serde_json::from_reader(after_calls_json_file)
-            .with_context(|| format!("Failed to deserialize after_calls JSON: {:?}", after_calls_json_path))?;
+        let after_calls_json_file = fs::File::open(&after_calls_json_path).with_context(|| {
+            format!(
+                "Failed to open after_calls JSON: {:?}",
+                after_calls_json_path
+            )
+        })?;
+        let after_calls_methods: Vec<SdkMethodCall> =
+            serde_json::from_reader(after_calls_json_file).with_context(|| {
+                format!(
+                    "Failed to deserialize after_calls JSON: {:?}",
+                    after_calls_json_path
+                )
+            })?;
 
         // Read and deserialize before_calls_extracted_sdk.json
-        let before_calls_json_file = fs::File::open(&before_calls_json_path)
-            .with_context(|| format!("Failed to open before_calls JSON: {:?}", before_calls_json_path))?;
-        let before_calls_methods: Vec<SdkMethodCall> = serde_json::from_reader(before_calls_json_file)
-            .with_context(|| format!("Failed to deserialize before_calls JSON: {:?}", before_calls_json_path))?;
+        let before_calls_json_file =
+            fs::File::open(&before_calls_json_path).with_context(|| {
+                format!(
+                    "Failed to open before_calls JSON: {:?}",
+                    before_calls_json_path
+                )
+            })?;
+        let before_calls_methods: Vec<SdkMethodCall> =
+            serde_json::from_reader(before_calls_json_file).with_context(|| {
+                format!(
+                    "Failed to deserialize before_calls JSON: {:?}",
+                    before_calls_json_path
+                )
+            })?;
 
         // Read and deserialize create_function_calls_extracted_sdk.json
         let create_function_calls_json_file = fs::File::open(&create_function_calls_json_path)
-            .with_context(|| format!("Failed to open create_function_calls JSON: {:?}", create_function_calls_json_path))?;
-        let create_function_calls_methods: Vec<SdkMethodCall> = serde_json::from_reader(create_function_calls_json_file)
-            .with_context(|| format!("Failed to deserialize create_function_calls JSON: {:?}", create_function_calls_json_path))?;
+            .with_context(|| {
+                format!(
+                    "Failed to open create_function_calls JSON: {:?}",
+                    create_function_calls_json_path
+                )
+            })?;
+        let create_function_calls_methods: Vec<SdkMethodCall> =
+            serde_json::from_reader(create_function_calls_json_file).with_context(|| {
+                format!(
+                    "Failed to deserialize create_function_calls JSON: {:?}",
+                    create_function_calls_json_path
+                )
+            })?;
 
         // Read and deserialize create_function_only_extracted_sdk.json
         let create_function_only_json_file = fs::File::open(&create_function_only_json_path)
-            .with_context(|| format!("Failed to open create_function_only JSON: {:?}", create_function_only_json_path))?;
-        let create_function_only_methods: Vec<SdkMethodCall> = serde_json::from_reader(create_function_only_json_file)
-            .with_context(|| format!("Failed to deserialize create_function_only JSON: {:?}", create_function_only_json_path))?;
+            .with_context(|| {
+                format!(
+                    "Failed to open create_function_only JSON: {:?}",
+                    create_function_only_json_path
+                )
+            })?;
+        let create_function_only_methods: Vec<SdkMethodCall> =
+            serde_json::from_reader(create_function_only_json_file).with_context(|| {
+                format!(
+                    "Failed to deserialize create_function_only JSON: {:?}",
+                    create_function_only_json_path
+                )
+            })?;
 
         // Read and deserialize intermediate_calls_extracted_sdk.json
         let intermediate_calls_json_file = fs::File::open(&intermediate_calls_json_path)
-            .with_context(|| format!("Failed to open intermediate_calls JSON: {:?}", intermediate_calls_json_path))?;
-        let intermediate_calls_methods: Vec<SdkMethodCall> = serde_json::from_reader(intermediate_calls_json_file)
-            .with_context(|| format!("Failed to deserialize intermediate_calls JSON: {:?}", intermediate_calls_json_path))?;
+            .with_context(|| {
+                format!(
+                    "Failed to open intermediate_calls JSON: {:?}",
+                    intermediate_calls_json_path
+                )
+            })?;
+        let intermediate_calls_methods: Vec<SdkMethodCall> =
+            serde_json::from_reader(intermediate_calls_json_file).with_context(|| {
+                format!(
+                    "Failed to deserialize intermediate_calls JSON: {:?}",
+                    intermediate_calls_json_path
+                )
+            })?;
 
         // Convert extracted methods to Vec<String>
-        let before_calls_list: Vec<String> = before_calls_methods.iter()
+        let before_calls_list: Vec<String> = before_calls_methods
+            .iter()
             .map(|m| m.name.clone())
             .unique()
             .collect();
-        let intermediate_calls_list: Vec<String> = intermediate_calls_methods.iter()
+        let intermediate_calls_list: Vec<String> = intermediate_calls_methods
+            .iter()
             .map(|m| m.name.clone())
             .unique()
             .collect();
-        let after_calls_list: Vec<String> = after_calls_methods.iter()
+        let after_calls_list: Vec<String> = after_calls_methods
+            .iter()
             .map(|m| m.name.clone())
             .unique()
             .collect();
-        let create_function_stack_calls_list: Vec<String> = create_function_calls_methods.iter()
+        let create_function_stack_calls_list: Vec<String> = create_function_calls_methods
+            .iter()
             .map(|m| m.name.clone())
             .unique()
             .collect();
-        let create_function_only_calls_list: Vec<String> = create_function_only_methods.iter()
+        let create_function_only_calls_list: Vec<String> = create_function_only_methods
+            .iter()
             .map(|m| m.name.clone())
             .unique()
             .collect();
@@ -567,10 +708,14 @@ pub async fn analyze_terraform_resources(
         // Create a row for this resource
         let row = ResourceAnalysisRow {
             service_name: metadata.service_dir_name.clone(),
-            terraform_resource_name: metadata.terraform_resource_name.first()
+            terraform_resource_name: metadata
+                .terraform_resource_name
+                .first()
                 .cloned()
                 .unwrap_or_default(),
-            aws_sdk_resource_name: metadata.sdk_resource_name.first()
+            aws_sdk_resource_name: metadata
+                .sdk_resource_name
+                .first()
                 .cloned()
                 .unwrap_or_default(),
             num_before_sdk_calls: before_calls_list.len() as i32,
@@ -598,10 +743,14 @@ pub async fn analyze_terraform_resources(
             // If no create_function_only calls, create one row with empty string
             let exploded_row = ResourceAnalysisRow {
                 service_name: metadata.service_dir_name.clone(),
-                terraform_resource_name: metadata.terraform_resource_name.first()
+                terraform_resource_name: metadata
+                    .terraform_resource_name
+                    .first()
                     .cloned()
                     .unwrap_or_default(),
-                aws_sdk_resource_name: metadata.sdk_resource_name.first()
+                aws_sdk_resource_name: metadata
+                    .sdk_resource_name
+                    .first()
                     .cloned()
                     .unwrap_or_default(),
                 num_before_sdk_calls: before_calls_list.len() as i32,
@@ -626,10 +775,14 @@ pub async fn analyze_terraform_resources(
             for sdk_call in &create_function_only_calls_list {
                 let exploded_row = ResourceAnalysisRow {
                     service_name: metadata.service_dir_name.clone(),
-                    terraform_resource_name: metadata.terraform_resource_name.first()
+                    terraform_resource_name: metadata
+                        .terraform_resource_name
+                        .first()
                         .cloned()
                         .unwrap_or_default(),
-                    aws_sdk_resource_name: metadata.sdk_resource_name.first()
+                    aws_sdk_resource_name: metadata
+                        .sdk_resource_name
+                        .first()
                         .cloned()
                         .unwrap_or_default(),
                     num_before_sdk_calls: before_calls_list.len() as i32,
@@ -659,21 +812,26 @@ pub async fn analyze_terraform_resources(
     }
 
     // Create the DataFrame from the collected columns
-    let df = columns.to_dataframe()
+    let df = columns
+        .to_dataframe()
         .context("Failed to create DataFrame")?;
 
     println!("\nDataFrame created with {} rows", df.height());
     println!("DataFrame shape: {:?}", df.shape());
 
     // Create output directory if it doesn't exist
-    fs::create_dir_all(&analysis_output_dir)
-        .with_context(|| format!("Failed to create output directory: {:?}", analysis_output_dir))?;
+    fs::create_dir_all(&analysis_output_dir).with_context(|| {
+        format!(
+            "Failed to create output directory: {:?}",
+            analysis_output_dir
+        )
+    })?;
 
     // Write DataFrame to CSV
     let csv_path = analysis_output_dir.join("terraform_resources_analysis.csv");
     let mut csv_file = std::fs::File::create(&csv_path)
         .with_context(|| format!("Failed to create CSV file: {:?}", csv_path))?;
-    
+
     CsvWriter::new(&mut csv_file)
         .finish(&mut df.clone())
         .context("Failed to write DataFrame to CSV")?;
@@ -681,17 +839,25 @@ pub async fn analyze_terraform_resources(
     println!("DataFrame written to CSV: {:?}", csv_path);
 
     // Create the exploded DataFrame from the collected columns
-    let exploded_df = exploded_columns.to_dataframe()
+    let exploded_df = exploded_columns
+        .to_dataframe()
         .context("Failed to create exploded DataFrame")?;
 
-    println!("\nExploded DataFrame created with {} rows", exploded_df.height());
+    println!(
+        "\nExploded DataFrame created with {} rows",
+        exploded_df.height()
+    );
     println!("Exploded DataFrame shape: {:?}", exploded_df.shape());
 
     // Write exploded DataFrame to CSV
     let exploded_csv_path = analysis_output_dir.join("terraform_resources_analysis_exploded.csv");
-    let mut exploded_csv_file = std::fs::File::create(&exploded_csv_path)
-        .with_context(|| format!("Failed to create exploded CSV file: {:?}", exploded_csv_path))?;
-    
+    let mut exploded_csv_file = std::fs::File::create(&exploded_csv_path).with_context(|| {
+        format!(
+            "Failed to create exploded CSV file: {:?}",
+            exploded_csv_path
+        )
+    })?;
+
     CsvWriter::new(&mut exploded_csv_file)
         .finish(&mut exploded_df.clone())
         .context("Failed to write exploded DataFrame to CSV")?;

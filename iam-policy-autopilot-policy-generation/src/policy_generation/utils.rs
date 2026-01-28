@@ -11,7 +11,7 @@ use std::sync::OnceLock;
 static ARN_PLACEHOLDER_REGEX: OnceLock<Regex> = OnceLock::new();
 
 /// Get the compiled regex for ARN placeholder matching
-fn get_placeholder_regex() -> &'static Regex {
+pub(crate) fn get_placeholder_regex() -> &'static Regex {
     ARN_PLACEHOLDER_REGEX
         .get_or_init(|| Regex::new(r"\$\{([^}]+)\}").expect("Invalid ARN placeholder regex"))
 }

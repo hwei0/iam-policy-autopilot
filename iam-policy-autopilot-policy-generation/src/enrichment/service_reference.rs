@@ -202,7 +202,12 @@ where
 pub(crate) struct AuthorizedAction {
     pub(crate) name: String,
     pub(crate) service: String,
-    #[serde(default, skip_serializing, deserialize_with = "deserialize_context", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        skip_serializing,
+        deserialize_with = "deserialize_context",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub(crate) context: Option<ServiceReferenceContext>,
 }
 
@@ -355,7 +360,9 @@ impl RemoteServiceReferenceLoader {
         self
     }
 
-    pub(crate) async fn get_or_init_mapping(&self) -> crate::errors::Result<&ServiceReferenceMapping> {
+    pub(crate) async fn get_or_init_mapping(
+        &self,
+    ) -> crate::errors::Result<&ServiceReferenceMapping> {
         self.service_reference_mapping
             .get_or_try_init(|| async {
                 let json_text = self
