@@ -8,7 +8,7 @@ use crate::enrichment::Context;
 use crate::errors::ExtractorError;
 use crate::providers::JsonProvider;
 use reqwest::{Client, Url};
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::{
     collections::HashMap,
@@ -127,19 +127,44 @@ impl<'de> Deserialize<'de> for ServiceReference {
     }
 }
 
+// Action properties from annotations
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "PascalCase")]
+pub(crate) struct ActionProperties {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) is_list: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) is_permission_management: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) is_tagging_only: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) is_write: Option<bool>,
+}
+
+// Action annotations
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "PascalCase")]
+pub(crate) struct ActionAnnotations {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) properties: Option<ActionProperties>,
+}
+
 // Models an action in service reference
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub(crate) struct Action {
     #[serde(rename = "Name")]
     pub(crate) name: String,
     #[serde(rename = "Resources")]
     #[serde(default)]
     pub(crate) resources: Vec<String>,
-    #[serde(rename = "ActionConditionKeys")]
+    #[serde(skip_serializing, rename = "ActionConditionKeys")]
     pub(crate) condition_keys: Vec<String>,
+    #[serde(rename = "Annotations")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) annotations: Option<ActionAnnotations>,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub(crate) struct ServiceReferenceContext {
     pub(crate) key: String,
     pub(crate) values: Vec<String>,
@@ -172,17 +197,17 @@ where
 }
 
 // Tracks actions each operation may authorize
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "PascalCase")]
 pub(crate) struct AuthorizedAction {
     pub(crate) name: String,
     pub(crate) service: String,
-    #[serde(default, deserialize_with = "deserialize_context")]
+    #[serde(default, skip_serializing, deserialize_with = "deserialize_context", skip_serializing_if = "Option::is_none")]
     pub(crate) context: Option<ServiceReferenceContext>,
 }
 
 // Part of construct in the operation to authorized action map
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "PascalCase")]
 pub(crate) struct SdkMethod {
     pub(crate) name: String,
@@ -225,6 +250,8 @@ where
         #[serde(rename = "ActionConditionKeys")]
         #[serde(default)]
         condition_keys: Vec<String>,
+        #[serde(rename = "Annotations")]
+        annotations: Option<ActionAnnotations>,
     }
 
     let actions: Vec<TempAction> = Vec::deserialize(deserializer)?;
@@ -235,6 +262,7 @@ where
                 name: temp_action.name.clone(),
                 resources: temp_action.resources.into_iter().map(|r| r.name).collect(),
                 condition_keys: temp_action.condition_keys,
+                annotations: temp_action.annotations,
             };
             (temp_action.name, action)
         })
@@ -327,7 +355,7 @@ impl RemoteServiceReferenceLoader {
         self
     }
 
-    async fn get_or_init_mapping(&self) -> crate::errors::Result<&ServiceReferenceMapping> {
+    pub(crate) async fn get_or_init_mapping(&self) -> crate::errors::Result<&ServiceReferenceMapping> {
         self.service_reference_mapping
             .get_or_try_init(|| async {
                 let json_text = self
@@ -721,7 +749,8 @@ mod tests {
             "Actions": [
                 {
                     "Name": "GetObject",
-                    "Resources": [{"Name": "object"}]
+                    "Resources": [{"Name": "object"}],
+                    "ActionConditionKeys": []
                 }
             ],
             "Resources": [
@@ -765,7 +794,8 @@ mod tests {
             "Actions": [
                 {
                     "Name": "GetObject",
-                    "Resources": [{"Name": "object"}]
+                    "Resources": [{"Name": "object"}],
+                    "ActionConditionKeys": []
                 }
             ],
             "Resources": [

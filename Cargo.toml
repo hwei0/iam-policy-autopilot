@@ -68,7 +68,7 @@ uuid = { version = "1.8", features = ["v4"] }
 aws-lc-rs = "1.15.2"
 git2 = { version = "0.20.3", default-features = false, features = ["vendored-libgit2"] }
 relative-path = "2.0.1"
-url = "2.5"
+url = {version = "2.5", features = ["serde"]}
 percent-encoding = "2.3"
 aws-sdk-iam = "1.89.0"
 aws-sdk-sts = "1.86.0"
@@ -76,6 +76,8 @@ aws-config = "1.8.6"
 base64 = "0.22"
 convert_case = "0.8"
 strsim = "0.11"
+polars = { version = "0.52", features = ["lazy", "parquet", "timezones", "json"] }
+itertools = "0.14.0"
 
 # Additional workspace configuration
 [workspace.lints.rust]

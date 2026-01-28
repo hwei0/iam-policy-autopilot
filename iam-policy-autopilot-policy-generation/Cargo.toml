@@ -28,6 +28,9 @@ tokio.workspace = true
 async-trait.workspace = true
 strsim.workspace = true
 derive-new.workspace = true
+polars.workspace = true
+url.workspace = true
+itertools.workspace = true
 
 
 # Build dependencies

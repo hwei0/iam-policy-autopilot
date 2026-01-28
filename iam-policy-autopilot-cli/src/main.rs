@@ -21,6 +21,8 @@ use std::process;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
+use iam_policy_autopilot_policy_generation::api::analyze_terraform_resources::{analyze_terraform_resources, extract_terraform_resource_sdk_calls};
+use iam_policy_autopilot_policy_generation::api::iterate_service_references;
 use iam_policy_autopilot_policy_generation::api::model::{
     AwsContext, ExtractSdkCallsConfig, GeneratePolicyConfig,
 };
@@ -361,13 +363,55 @@ Only used when --transport=http. The server will bind to 127.0.0.1 (localhost) o
         #[arg(long = "verbose", default_value_t = false, hide = true)]
         verbose: bool,
     },
+
+    #[command(
+        about = "Extract SDK calls from terraform resource directories.",
+        long_flag = "extract-terraform-resource-sdk-calls"
+    )]
+    ExtractTerraformResourceSdkCalls {
+        #[arg(long = "resource-extractor-output")]
+        resourceExtractorOutput: PathBuf,
+    },
+
+    #[command(
+        about = "Analyze terraform create-resource parsings.",
+        long_flag = "analyze-terraform-resources"
+    )]
+    AnalyzeTerraformResources {
+        #[arg(long = "resource-extractor-output")]
+        resourceExtractorOutput: PathBuf,
+
+        #[arg(long = "resource-schema-file")]
+        resourceSchemaFile: PathBuf,
+
+        #[arg(long = "analysis-output-dir")]
+        analysisOutputDir: PathBuf
+    },
+
+    #[command(
+        about = "Iterate through service reference files and operations.",
+        long_flag = "iterate-service-references"
+    )]
+    IterateServiceReferences {
+        /// Output directory where the JSON file will be written
+        #[arg(long = "output-dir")]
+        output_dir: PathBuf,
+
+        /// Format JSON output with indentation for readability
+        #[arg(short = 'p', long = "pretty")]
+        pretty: bool,
+
+        /// Enable debug logging output to stderr (most verbose)
+        #[arg(hide = true, short = 'd', long = "debug")]
+        debug: bool,
+    }
 }
 
 /// Initialize logging based on configuration
 fn init_logging(debug: bool) -> Result<()> {
     let log_level = if debug {
         // Debug takes precedence - most verbose logging including TRACE
-        log::LevelFilter::Trace
+        log::LevelFilter::Debug
     } else {
         // Default: only ERROR messages
         log::LevelFilter::Error
@@ -620,6 +664,41 @@ async fn main() {
                 ExitCode::Error
             }
         },
+
+        Commands::ExtractTerraformResourceSdkCalls { resourceExtractorOutput } => match extract_terraform_resource_sdk_calls(resourceExtractorOutput).await {
+            Ok(()) => ExitCode::Success,
+            Err(e) => {
+                print_cli_command_error(e);
+                ExitCode::Error
+            }
+        },
+
+        Commands::AnalyzeTerraformResources { resourceExtractorOutput, resourceSchemaFile, analysisOutputDir } => match analyze_terraform_resources(resourceExtractorOutput, resourceSchemaFile, analysisOutputDir).await {
+            Ok(()) => ExitCode::Success,
+            Err(e) => {
+                print_cli_command_error(e);
+                ExitCode::Error
+            }
+        },
+
+        Commands::IterateServiceReferences { output_dir, pretty, debug } => {
+            // Initialize logging
+            if let Err(e) = init_logging(debug) {
+                eprintln!("iam-policy-autopilot: Failed to initialize logging: {}", e);
+                process::exit(1);
+            }
+
+            match iterate_service_references(output_dir, pretty).await {
+                Ok(output_file) => {
+                    println!("Successfully wrote output to: {}", output_file.display());
+                    ExitCode::Success
+                }
+                Err(e) => {
+                    print_cli_command_error(e);
+                    ExitCode::Error
+                }
+            }
+        }
     };
 
     process::exit(code.into());
