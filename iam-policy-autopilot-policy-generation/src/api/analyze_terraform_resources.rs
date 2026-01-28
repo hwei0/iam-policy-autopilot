@@ -31,10 +31,10 @@ pub struct MetadataStruct {
     pub service_dir_name: String,
     /// Path to the Terraform provider file
     pub file_path: String,
-    /// List of Terraform resource names
-    pub terraform_resource_name: Vec<String>,
-    /// List of SDK resource names
-    pub sdk_resource_name: Vec<String>,
+    /// Terraform resource name
+    pub terraform_resource_name: String,
+    /// SDK resource name
+    pub sdk_resource_name: String,
     /// Name of the create function
     pub create_function_name: String,
     /// Resource decorator annotations
@@ -709,15 +709,9 @@ pub async fn analyze_terraform_resources(
         let row = ResourceAnalysisRow {
             service_name: metadata.service_dir_name.clone(),
             terraform_resource_name: metadata
-                .terraform_resource_name
-                .first()
-                .cloned()
-                .unwrap_or_default(),
+                .terraform_resource_name.clone(),
             aws_sdk_resource_name: metadata
-                .sdk_resource_name
-                .first()
-                .cloned()
-                .unwrap_or_default(),
+                .sdk_resource_name.clone(),
             num_before_sdk_calls: before_calls_list.len() as i32,
             before_sdk_calls: before_calls_list.join(", "),
             num_intermediate_sdk_calls: intermediate_calls_list.len() as i32,
@@ -744,15 +738,9 @@ pub async fn analyze_terraform_resources(
             let exploded_row = ResourceAnalysisRow {
                 service_name: metadata.service_dir_name.clone(),
                 terraform_resource_name: metadata
-                    .terraform_resource_name
-                    .first()
-                    .cloned()
-                    .unwrap_or_default(),
+                    .terraform_resource_name.clone(),
                 aws_sdk_resource_name: metadata
-                    .sdk_resource_name
-                    .first()
-                    .cloned()
-                    .unwrap_or_default(),
+                    .sdk_resource_name.clone(),
                 num_before_sdk_calls: before_calls_list.len() as i32,
                 before_sdk_calls: before_calls_list.join(", "),
                 num_intermediate_sdk_calls: intermediate_calls_list.len() as i32,
@@ -776,15 +764,9 @@ pub async fn analyze_terraform_resources(
                 let exploded_row = ResourceAnalysisRow {
                     service_name: metadata.service_dir_name.clone(),
                     terraform_resource_name: metadata
-                        .terraform_resource_name
-                        .first()
-                        .cloned()
-                        .unwrap_or_default(),
+                        .terraform_resource_name.clone(),
                     aws_sdk_resource_name: metadata
-                        .sdk_resource_name
-                        .first()
-                        .cloned()
-                        .unwrap_or_default(),
+                        .sdk_resource_name.clone(),
                     num_before_sdk_calls: before_calls_list.len() as i32,
                     before_sdk_calls: before_calls_list.join(", "),
                     num_intermediate_sdk_calls: intermediate_calls_list.len() as i32,
