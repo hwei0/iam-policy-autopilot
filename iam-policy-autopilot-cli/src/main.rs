@@ -22,7 +22,7 @@ use std::process;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use iam_policy_autopilot_policy_generation::api::analyze_terraform_resources::{analyze_terraform_resources, extract_terraform_resource_sdk_calls};
-use iam_policy_autopilot_policy_generation::api::iterate_service_references;
+use iam_policy_autopilot_policy_generation::api::{iterate_service_references, iterate_operation_inputs};
 use iam_policy_autopilot_policy_generation::api::model::{
     AwsContext, ExtractSdkCallsConfig, GeneratePolicyConfig,
 };
@@ -404,6 +404,24 @@ Only used when --transport=http. The server will bind to 127.0.0.1 (localhost) o
         /// Enable debug logging output to stderr (most verbose)
         #[arg(hide = true, short = 'd', long = "debug")]
         debug: bool,
+    },
+
+    #[command(
+        about = "Iterate through SDK service operations and analyze their input shapes.",
+        long_flag = "iterate-operation-inputs"
+    )]
+    IterateOperationInputs {
+        /// Output directory where the JSON and CSV files will be written
+        #[arg(long = "output-dir")]
+        output_dir: PathBuf,
+
+        /// Format JSON output with indentation for readability
+        #[arg(short = 'p', long = "pretty")]
+        pretty: bool,
+
+        /// Enable debug logging output to stderr (most verbose)
+        #[arg(hide = true, short = 'd', long = "debug")]
+        debug: bool,
     }
 }
 
@@ -689,6 +707,25 @@ async fn main() {
             }
 
             match iterate_service_references(output_dir, pretty).await {
+                Ok(output_file) => {
+                    println!("Successfully wrote output to: {}", output_file.display());
+                    ExitCode::Success
+                }
+                Err(e) => {
+                    print_cli_command_error(e);
+                    ExitCode::Error
+                }
+            }
+        }
+
+        Commands::IterateOperationInputs { output_dir, pretty, debug } => {
+            // Initialize logging
+            if let Err(e) = init_logging(debug) {
+                eprintln!("iam-policy-autopilot: Failed to initialize logging: {}", e);
+                process::exit(1);
+            }
+
+            match iterate_operation_inputs(output_dir, pretty).await {
                 Ok(output_file) => {
                     println!("Successfully wrote output to: {}", output_file.display());
                     ExitCode::Success
